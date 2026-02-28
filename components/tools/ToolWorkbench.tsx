@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import jsQR from 'jsqr';
 import QRCode from 'qrcode';
 import { useClipboard } from '@/hooks/useClipboard';
@@ -97,6 +97,7 @@ const actionConfig: Record<string, Action[]> = {
     { id: 'sha1', label: 'SHA-1' },
     { id: 'sha256', label: 'SHA-256' },
     { id: 'sha512', label: 'SHA-512' },
+    { id: 'hmac-sha256', label: 'HMAC-SHA256' },
   ],
   'sql-formatter': [
     { id: 'sql', label: 'SQL' },
@@ -157,7 +158,9 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
     setActiveAction((actionConfig[toolId] ?? [{ id: 'default', label: 'Run' }])[0].id);
   }, [toolId]);
 
-  const run = async (action = activeAction) => {
+  const runRef = useRef<(action?: string) => Promise<void>>();
+
+  const run = useCallback(async (action = activeAction) => {
     setLoading(true);
     try {
       if (toolId === 'qr-code') {
@@ -177,14 +180,16 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toolId, input, secondInput, activeAction, save]);
+
+  useEffect(() => { runRef.current = run; }, [run]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const cmd = e.metaKey || e.ctrlKey;
       if (cmd && e.key === 'Enter') {
         e.preventDefault();
-        void run();
+        void runRef.current?.();
       }
       if (cmd && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
@@ -208,7 +213,6 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
 
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [copy, output, toolId]);
 
   async function decodeQrFromFile(file: File) {
@@ -274,7 +278,11 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
         <div className="flex items-center gap-1.5">
           <label className="flex items-center gap-1.5 text-[11px] cursor-pointer" style={{ color: 'var(--text-muted)' }}>
             <input type="checkbox" checked={wrapInput} onChange={(e) => setWrapInput(e.target.checked)} className="accent-[var(--accent)]" />
-            Wrap
+            Wrap in
+          </label>
+          <label className="flex items-center gap-1.5 text-[11px] cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+            <input type="checkbox" checked={wrapOutput} onChange={(e) => setWrapOutput(e.target.checked)} className="accent-[var(--accent)]" />
+            Wrap out
           </label>
 
           <div className="mx-1 h-4 w-px" style={{ background: 'var(--border)' }} />

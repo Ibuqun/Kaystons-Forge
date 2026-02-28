@@ -33,10 +33,12 @@ function parseJsonLoose(raw: string) {
   try {
     return JSON.parse(text);
   } catch {
-    const normalized = text
-      .replace(/([{,]\s*)([A-Za-z_$][\w$-]*)(\s*:)/g, '$1"$2"$3')
-      .replace(/'/g, '"')
-      .replace(/,\s*([}\]])/g, '$1');
+    // Step 1: Quote unquoted keys
+    let normalized = text.replace(/([{,]\s*)([A-Za-z_$][\w$-]*)(\s*:)/g, '$1"$2"$3');
+    // Step 2: Replace single-quoted string values (not apostrophes inside double-quoted strings)
+    normalized = normalized.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"');
+    // Step 3: Remove trailing commas
+    normalized = normalized.replace(/,\s*([}\]])/g, '$1');
     try {
       return JSON.parse(normalized);
     } catch {
@@ -53,6 +55,7 @@ function formatJsonError(error: unknown) {
 
 function detectTimestamp(raw: string) {
   const cleaned = raw.trim();
+  if (!cleaned) return null;
   const n = Number(cleaned);
   if (Number.isNaN(n)) return null;
   return cleaned.length > 10 ? n : n * 1000;
@@ -127,19 +130,6 @@ function parseUrl(value: string) {
   }
 }
 
-function basicBeautify(content: string) {
-  return content
-    .replace(/\s*\{\s*/g, ' {\n  ')
-    .replace(/;\s*/g, ';\n  ')
-    .replace(/\s*\}\s*/g, '\n}\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-}
-
-function basicMinify(content: string) {
-  return content.replace(/\s+/g, ' ').replace(/>\s+</g, '><').trim();
-}
-
 function flattenRecord(input: Record<string, unknown>, prefix = '', out: Record<string, unknown> = {}) {
   for (const [key, value] of Object.entries(input)) {
     const composed = prefix ? `${prefix}.${key}` : key;
@@ -173,6 +163,127 @@ function parseBase(value: string, base: number) {
   return negative ? -acc : acc;
 }
 
+function escapeHtmlAttr(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Beautify HTML by indenting tags properly */
+function beautifyHtml(html: string): string {
+  const result: string[] = [];
+  let indent = 0;
+  const voidElements = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+
+  // Split between all adjacent tags (with or without whitespace)
+  const tokens = html.replace(/>\s*</g, '>\n<').split('\n');
+
+  for (const token of tokens) {
+    const trimmed = token.trim();
+    if (!trimmed) continue;
+
+    // Closing tag
+    if (/^<\//.test(trimmed)) {
+      indent = Math.max(0, indent - 1);
+      result.push('  '.repeat(indent) + trimmed);
+    }
+    // Self-closing or void
+    else if (/\/>$/.test(trimmed) || voidElements.has((trimmed.match(/^<(\w+)/)?.[1] || '').toLowerCase())) {
+      result.push('  '.repeat(indent) + trimmed);
+    }
+    // Opening tag
+    else if (/^<\w/.test(trimmed)) {
+      result.push('  '.repeat(indent) + trimmed);
+      // Only increase indent if this line has an opening tag without its matching close
+      const tagName = (trimmed.match(/^<(\w+)/)?.[1] || '').toLowerCase();
+      if (tagName && !new RegExp(`</${tagName}>\\s*$`, 'i').test(trimmed)) {
+        indent++;
+      }
+    }
+    // Text or other content
+    else {
+      result.push('  '.repeat(indent) + trimmed);
+    }
+  }
+  return result.join('\n');
+}
+
+/** Minify HTML by collapsing whitespace and removing comments */
+function minifyHtml(html: string): string {
+  return html
+    .replace(/<!--[\s\S]*?-->/g, '')    // Remove comments
+    .replace(/\s+/g, ' ')               // Collapse whitespace
+    .replace(/>\s+</g, '><')            // Remove space between tags
+    .replace(/\s+>/g, '>')              // Remove space before >
+    .replace(/<\s+/g, '<')              // Remove space after <
+    .trim();
+}
+
+/** Beautify CSS/LESS/SCSS by properly indenting rules */
+function beautifyCss(css: string): string {
+  const result: string[] = [];
+  let indent = 0;
+
+  // Normalize
+  const normalized = css
+    .replace(/\s*\{\s*/g, ' {\n')
+    .replace(/\s*\}\s*/g, '\n}\n')
+    .replace(/;\s*/g, ';\n')
+    .replace(/\n{2,}/g, '\n');
+
+  for (const line of normalized.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (trimmed === '}') {
+      indent = Math.max(0, indent - 1);
+      result.push('  '.repeat(indent) + trimmed);
+    } else if (trimmed.endsWith('{')) {
+      result.push('  '.repeat(indent) + trimmed);
+      indent++;
+    } else {
+      result.push('  '.repeat(indent) + trimmed);
+    }
+  }
+  return result.join('\n');
+}
+
+/** Minify CSS by collapsing whitespace and removing comments */
+function minifyCss(css: string): string {
+  return css
+    .replace(/\/\*[\s\S]*?\*\//g, '')   // Remove comments
+    .replace(/\s+/g, ' ')               // Collapse whitespace
+    .replace(/\s*([{}:;,])\s*/g, '$1')  // Remove space around syntax chars
+    .replace(/;}/g, '}')                // Remove last semicolon before }
+    .trim();
+}
+
+/** Beautify JS with basic indentation */
+function beautifyJs(js: string): string {
+  const result: string[] = [];
+  let indent = 0;
+
+  const normalized = js
+    .replace(/\s*\{\s*/g, ' {\n')
+    .replace(/\s*\}\s*/g, '\n}\n')
+    .replace(/;\s*/g, ';\n')
+    .replace(/\n{2,}/g, '\n');
+
+  for (const line of normalized.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    if (trimmed.startsWith('}')) {
+      indent = Math.max(0, indent - 1);
+      result.push('  '.repeat(indent) + trimmed);
+    } else if (trimmed.endsWith('{')) {
+      result.push('  '.repeat(indent) + trimmed);
+      indent++;
+    } else {
+      result.push('  '.repeat(indent) + trimmed);
+    }
+  }
+  return result.join('\n');
+}
+
 export async function processTool(toolId: string, input: string, options: ProcessOptions = {}): Promise<ProcessResult> {
   const action = options.action ?? 'default';
 
@@ -180,7 +291,21 @@ export async function processTool(toolId: string, input: string, options: Proces
     switch (toolId) {
       case 'unix-time-converter': {
         const ts = detectTimestamp(input);
-        const date = ts !== null ? new Date(ts) : new Date(input);
+        if (ts === null) {
+          const date = new Date(input);
+          if (Number.isNaN(date.getTime())) return { output: 'Invalid timestamp or date input.' };
+          return {
+            output: [
+              `Local: ${date.toLocaleString()}`,
+              `UTC: ${date.toUTCString()}`,
+              `ISO: ${date.toISOString()}`,
+              `Relative: ${relativeTime(date.getTime())}`,
+              `Unix Seconds: ${Math.floor(date.getTime() / 1000)}`,
+              `Unix Milliseconds: ${date.getTime()}`,
+            ].join('\n'),
+          };
+        }
+        const date = new Date(ts);
         if (Number.isNaN(date.getTime())) return { output: 'Invalid timestamp or date input.' };
         return {
           output: [
@@ -223,12 +348,13 @@ export async function processTool(toolId: string, input: string, options: Proces
           return {
             output: body || '',
             meta: head,
-            previewHtml: `<img src="${raw}" alt="Base64 preview" style="max-width:100%;height:auto" />`,
+            previewHtml: `<img src="${escapeHtmlAttr(raw)}" alt="Base64 preview" style="max-width:100%;height:auto" />`,
           };
         }
-        const dataUrl = `data:image/png;base64,${raw}`;
+        const safeBase64 = escapeHtmlAttr(raw);
+        const dataUrl = `data:image/png;base64,${safeBase64}`;
         return {
-          output: dataUrl,
+          output: `data:image/png;base64,${raw}`,
           previewHtml: `<img src="${dataUrl}" alt="Base64 preview" style="max-width:100%;height:auto" />`,
         };
       }
@@ -315,12 +441,19 @@ export async function processTool(toolId: string, input: string, options: Proces
         };
       }
 
-      case 'html-beautify':
+      case 'html-beautify': {
+        return { output: action === 'minify' ? minifyHtml(input) : beautifyHtml(input) };
+      }
+
       case 'css-beautify':
-      case 'erb-beautify':
       case 'less-beautify':
       case 'scss-beautify': {
-        return { output: action === 'minify' ? basicMinify(input) : basicBeautify(input) };
+        return { output: action === 'minify' ? minifyCss(input) : beautifyCss(input) };
+      }
+
+      case 'erb-beautify': {
+        if (action === 'minify') return { output: minifyHtml(input) };
+        return { output: beautifyHtml(input) };
       }
 
       case 'js-beautify': {
@@ -328,7 +461,7 @@ export async function processTool(toolId: string, input: string, options: Proces
           const out = await terserMinify(input, { compress: true, mangle: true });
           return { output: out.code || '' };
         }
-        return { output: basicBeautify(input) };
+        return { output: beautifyJs(input) };
       }
 
       case 'xml-beautify': {
@@ -402,19 +535,30 @@ export async function processTool(toolId: string, input: string, options: Proces
       case 'hash-generator': {
         const key = options.secondInput || '';
         const algo = action || 'sha256';
-        const digest =
-          algo === 'md5'
-            ? CryptoJS.MD5(input)
-            : algo === 'sha1'
-              ? CryptoJS.SHA1(input)
-              : algo === 'sha512'
-                ? CryptoJS.SHA512(input)
-                : key
-                  ? CryptoJS.HmacSHA256(input, key)
-                  : CryptoJS.SHA256(input);
+        let digest;
+        switch (algo) {
+          case 'md5':
+            digest = CryptoJS.MD5(input);
+            break;
+          case 'sha1':
+            digest = CryptoJS.SHA1(input);
+            break;
+          case 'sha256':
+            digest = CryptoJS.SHA256(input);
+            break;
+          case 'sha512':
+            digest = CryptoJS.SHA512(input);
+            break;
+          case 'hmac-sha256':
+            digest = CryptoJS.HmacSHA256(input, key);
+            break;
+          default:
+            digest = CryptoJS.SHA256(input);
+        }
         return {
           output: digest.toString(CryptoJS.enc.Hex),
           meta: [
+            `Algorithm: ${algo.toUpperCase()}${algo === 'hmac-sha256' ? ` (key: ${key ? 'provided' : 'none'})` : ''}`,
             `Base64: ${digest.toString(CryptoJS.enc.Base64)}`,
             `Base64URL: ${digest.toString(CryptoJS.enc.Base64).replaceAll('+', '-').replaceAll('/', '_').replaceAll(/=+$/g, '')}`,
           ].join('\n'),
@@ -426,8 +570,17 @@ export async function processTool(toolId: string, input: string, options: Proces
 
       case 'markdown-preview': {
         const { marked } = await import('marked');
-        const html = await marked.parse(input || '', { gfm: true, breaks: false });
-        return { output: html, previewHtml: html };
+        const rawHtml = await marked.parse(input || '', { gfm: true, breaks: false });
+        // Sanitize to prevent XSS - strip script tags, event handlers, etc.
+        const sanitized = rawHtml
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
+          .replace(/\bon\w+\s*=\s*[^\s>]*/gi, '')
+          .replace(/javascript\s*:/gi, 'blocked:')
+          .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '')
+          .replace(/<object\b[^>]*>[\s\S]*?<\/object>/gi, '')
+          .replace(/<embed\b[^>]*>/gi, '');
+        return { output: sanitized, previewHtml: sanitized };
       }
 
       case 'sql-formatter': {
