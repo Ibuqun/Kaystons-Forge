@@ -1,0 +1,249 @@
+import { describe, expect, it } from "vitest";
+import { processTool } from "@/lib/tools/engine";
+
+describe("tool engine", () => {
+  it("formats json", async () => {
+    const out = await processTool("json-format-validate", '{"a":1}', {
+      action: "default",
+    });
+    expect(out.output).toContain("\n");
+    expect(out.output).toContain('"a"');
+  });
+
+  it("minifies json", async () => {
+    const out = await processTool("json-format-validate", '{"a":1, "b":2}', {
+      action: "minify",
+    });
+    expect(out.output).toBe('{"a":1,"b":2}');
+  });
+
+  it("parses loose json", async () => {
+    const out = await processTool("json-format-validate", '{a:1,"b":"test"}');
+    expect(out.output).toContain('"a"');
+    expect(out.output).toContain('"b"');
+  });
+
+  it("encodes and decodes base64", async () => {
+    const encoded = await processTool("base64-string", "hello", {
+      action: "default",
+    });
+    const decoded = await processTool("base64-string", encoded.output, {
+      action: "decode",
+    });
+    expect(decoded.output).toBe("hello");
+  });
+
+  it("encodes base64 url-safe", async () => {
+    const out = await processTool("base64-string", "a+b/c", {
+      action: "encode-url-safe",
+    });
+    expect(out.output).toBe("YStiL2M");
+  });
+
+  it("parses url", async () => {
+    const out = await processTool(
+      "url-parser",
+      "https://example.com:8080/path?a=1#hash",
+    );
+    expect(out.output).toContain("protocol");
+    expect(out.output).toContain("hostname");
+    expect(out.output).toContain("8080");
+  });
+
+  it("url encodes and decodes", async () => {
+    const encoded = await processTool(
+      "url-encode-decode",
+      "hello world&foo=bar",
+    );
+    expect(encoded.output).toBe("hello%20world&foo=bar");
+    const decoded = await processTool("url-encode-decode", "hello%20world", {
+      action: "decode",
+    });
+    expect(decoded.output).toBe("hello world");
+  });
+
+  it("builds hashes", async () => {
+    const out = await processTool("hash-generator", "abc", {
+      action: "sha256",
+    });
+    expect(out.output).toHaveLength(64);
+  });
+
+  it("generates md5", async () => {
+    const out = await processTool("hash-generator", "test", { action: "md5" });
+    expect(out.output).toBe("098f6bcd4621d373cade4e832627b4f6");
+  });
+
+  it("generates hmac", async () => {
+    const out = await processTool("hash-generator", "message", {
+      action: "hmac-sha256",
+      secondInput: "key",
+    });
+    expect(out.output).toHaveLength(64);
+  });
+
+  it("converts yaml to json", async () => {
+    const out = await processTool("yaml-to-json", "name: test\nvalue: 123");
+    expect(out.output).toContain('"name"');
+    expect(out.output).toContain('"test"');
+  });
+
+  it("converts json to yaml", async () => {
+    const out = await processTool(
+      "json-to-yaml",
+      '{"name":"test","value":123}',
+    );
+    expect(out.output).toContain("name: test");
+    expect(out.output).toContain("value: 123");
+  });
+
+  it("converts csv to json", async () => {
+    const out = await processTool("csv-to-json", "name,age\nJohn,30");
+    expect(out.output).toContain('"name"');
+    expect(out.output).toContain("John");
+  });
+
+  it("converts json to csv", async () => {
+    const out = await processTool("json-to-csv", '[{"name":"John","age":30}]');
+    expect(out.output).toContain("name,age");
+    expect(out.output).toContain("John,30");
+  });
+
+  it("formats sql", async () => {
+    const out = await processTool(
+      "sql-formatter",
+      "select name from users where id=1",
+    );
+    expect(out.output).toContain("select");
+    expect(out.output).toContain("from");
+    expect(out.output).toContain("where");
+  });
+
+  it("encodes and decodes html entities", async () => {
+    const encoded = await processTool("html-entity", "<div>test</div>");
+    expect(encoded.output).toContain("&lt;");
+    const decoded = await processTool("html-entity", "&lt;div&gt;", {
+      action: "decode",
+    });
+    expect(decoded.output).toContain("<div>");
+  });
+
+  it("escapes and unescapes backslashes", async () => {
+    const escaped = await processTool("backslash-escape", "line1\nline2");
+    expect(escaped.output).toContain("\\n");
+    const unescaped = await processTool("backslash-escape", "line1\\nline2", {
+      action: "unescape",
+    });
+    expect(unescaped.output).toContain("\n");
+  });
+
+  it("generates uuid/ulid", async () => {
+    const out = await processTool("uuid-ulid", "");
+    const lines = out.output.split("\n");
+    expect(lines[0]).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4/);
+    expect(lines[2]).toMatch(/^[0-9A-HJKMNP-TV-Z]{26}$/);
+  });
+
+  it("generates lorem ipsum", async () => {
+    const out = await processTool("lorem-ipsum", "2");
+    expect(out.output).toContain("Lorem ipsum");
+    expect(out.output.split("\n").length).toBeGreaterThan(1);
+  });
+
+  it("generates lorem words", async () => {
+    const out = await processTool("lorem-ipsum", "10", { action: "words" });
+    const words = out.output.split(" ").length;
+    expect(words).toBe(10);
+  });
+
+  it("inspects strings", async () => {
+    const out = await processTool("string-inspector", "hello");
+    expect(out.output).toContain("Grapheme count: 5");
+    expect(out.output).toContain("Byte length (UTF-8): 5");
+  });
+
+  it("converts number bases", async () => {
+    const out = await processTool("number-base", "255|10");
+    expect(out.output).toContain("Binary: 11111111");
+    expect(out.output).toContain("Hex: FF");
+  });
+
+  it("parses unix timestamp", async () => {
+    const out = await processTool("unix-time-converter", "1704067200");
+    expect(out.output).toContain("Local:");
+    expect(out.output).toContain("UTC:");
+    expect(out.output).toContain("Unix Seconds: 1704067200");
+  });
+
+  it("generates html preview", async () => {
+    const out = await processTool("html-preview", "<h1>Test</h1>");
+    expect(out.previewHtml).toContain("<h1>Test</h1>");
+  });
+
+  it("generates markdown preview", async () => {
+    const out = await processTool("markdown-preview", "# Hello");
+    expect(out.previewHtml).toContain("<h1>");
+    expect(out.previewHtml).toContain("Hello");
+  });
+
+  it("tests regexp", async () => {
+    const out = await processTool("regexp-tester", "\\d+", {
+      secondInput: "abc123def",
+    });
+    expect(out.output).toContain("123");
+  });
+
+  it("generates diff", async () => {
+    const out = await processTool("text-diff", "line1\nline2", {
+      secondInput: "line1\nline3",
+    });
+    expect(out.output).toContain("-");
+    expect(out.output).toContain("+");
+  });
+
+  it("converts html to jsx", async () => {
+    const out = await processTool("html-to-jsx", '<div class="test">Hi</div>');
+    expect(out.output).toContain("className");
+    expect(out.output).not.toContain('class="');
+  });
+
+  it("beautifies and minifies xml", async () => {
+    const beautified = await processTool(
+      "xml-beautify",
+      "<root><item>v</item></root>",
+    );
+    expect(beautified.output).toContain("\n");
+    const minified = await processTool(
+      "xml-beautify",
+      "<root><item>v</item></root>",
+      { action: "minify" },
+    );
+    expect(minified.output).toBe("<root><item>v</item></root>");
+  });
+
+  it("minifies js", async () => {
+    const out = await processTool(
+      "js-beautify",
+      "function test() { const x = 1; return x; }",
+      { action: "minify" },
+    );
+    expect(out.output).toBe("function test(){return 1}");
+  });
+
+  it("parses jwt", async () => {
+    const token =
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIn0.signature";
+    const out = await processTool("jwt-debugger", token);
+    expect(out.output).toContain("Header:");
+    expect(out.output).toContain("Payload:");
+    expect(out.output).toContain("alg");
+    expect(out.output).toContain("sub");
+  });
+
+  it("decodes ulid time", async () => {
+    const out = await processTool("uuid-ulid", "01ARZ3NDEKTSV4RRFFQ69G5FAV", {
+      action: "decode-ulid",
+    });
+    expect(out.output).toContain("2016");
+  });
+});
