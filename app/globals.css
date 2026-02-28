@@ -118,6 +118,68 @@ button, input, textarea, select {
   color: var(--text-muted);
 }
 
+/* Syntax-highlighted output */
+.highlighted-output {
+  width: 100%;
+  min-height: 120px;
+  padding: 14px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.7;
+  overflow: auto;
+  margin: 0;
+  tab-size: 2;
+}
+
+.highlighted-output code {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  background: none;
+  padding: 0;
+}
+
+/* Prism token colors — forge palette */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata { color: var(--text-muted); font-style: italic; }
+
+.token.punctuation { color: #8a8478; }
+
+.token.property,
+.token.attr-name,
+.token.tag { color: #d4915e; }
+
+.token.string,
+.token.attr-value { color: #c4993a; }
+
+.token.number { color: #e6a06a; }
+
+.token.boolean,
+.token.null-value,
+.token.constant { color: #cf7d4f; }
+
+.token.keyword,
+.token.selector,
+.token.important { color: #5b8ec9; }
+
+.token.function { color: #5da67a; }
+
+.token.operator,
+.token.entity { color: #8a8478; }
+
+.token.atrule { color: #5b8ec9; }
+
+.token.regex { color: #c4993a; }
+
+.token.inserted { color: #5da67a; }
+.token.deleted { color: #c75050; }
+
 /* Panel container */
 .panel {
   border: 1px solid var(--border-subtle);

@@ -17,6 +17,14 @@ import {
   XMarkIcon,
   CheckIcon,
 } from '@heroicons/react/24/outline';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-json';
+import 'prismjs/components/prism-yaml';
+import 'prismjs/components/prism-css';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-jsx';
+import 'prismjs/components/prism-markup';
+import 'prismjs/components/prism-sql';
 
 type Action = { id: string; label: string };
 
@@ -125,6 +133,23 @@ const sampleSecondInput: Record<string, string> = {
   'text-diff': 'line 1\nline 2 changed\nline 4',
 };
 
+/** Map tool IDs to Prism language for syntax highlighting */
+const highlightLang: Record<string, string> = {
+  'json-format-validate': 'json',
+  'json-to-yaml': 'yaml',
+  'yaml-to-json': 'json',
+  'html-beautify': 'markup',
+  'erb-beautify': 'markup',
+  'css-beautify': 'css',
+  'less-beautify': 'css',
+  'scss-beautify': 'css',
+  'js-beautify': 'javascript',
+  'xml-beautify': 'markup',
+  'sql-formatter': 'sql',
+  'jwt-debugger': 'json',
+  'html-to-jsx': 'jsx',
+};
+
 const needsSecondInput = new Set(['regexp-tester', 'text-diff', 'hash-generator']);
 const needsPreview = new Set(['html-preview', 'markdown-preview', 'base64-image']);
 
@@ -183,6 +208,14 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
   }, [toolId, input, secondInput, activeAction, save]);
 
   useEffect(() => { runRef.current = run; }, [run]);
+
+  const lang = highlightLang[toolId];
+  const highlightedHtml = useMemo(() => {
+    if (!lang || !output) return '';
+    const grammar = Prism.languages[lang];
+    if (!grammar) return '';
+    return Prism.highlight(output, grammar, lang);
+  }, [lang, output]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -380,13 +413,22 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
                 </span>
               )}
             </div>
-            <textarea
-              className={`editor min-h-0 flex-1 ${wrapOutput ? '' : 'whitespace-pre'}`}
-              value={output}
-              wrap={wrapOutput ? 'soft' : 'off'}
-              readOnly
-              aria-label="Tool output"
-            />
+            {highlightedHtml ? (
+              <pre
+                className={`highlighted-output min-h-0 flex-1 ${wrapOutput ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'}`}
+                aria-label="Tool output"
+              >
+                <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
+              </pre>
+            ) : (
+              <textarea
+                className={`editor min-h-0 flex-1 ${wrapOutput ? '' : 'whitespace-pre'}`}
+                value={output}
+                wrap={wrapOutput ? 'soft' : 'off'}
+                readOnly
+                aria-label="Tool output"
+              />
+            )}
 
             {meta && (
               <pre className="mt-2 max-h-20 overflow-auto rounded-lg border p-2.5 text-[11px]" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)', color: 'var(--text-secondary)' }}>
