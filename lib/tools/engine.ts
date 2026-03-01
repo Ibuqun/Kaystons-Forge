@@ -616,6 +616,35 @@ export async function processTool(toolId: string, input: string, options: Proces
         return { output: result.output, meta: result.meta };
       }
 
+      case 'text-separator': {
+        const cfg: Record<string, string> = {};
+        for (const line of (options.secondInput || '').split('\n')) {
+          const eq = line.indexOf('=');
+          if (eq > 0) cfg[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
+        }
+        const sepMap: Record<string, string> = {
+          newline: '\n', comma: ',', comma_space: ', ', semicolon: ';',
+          tab: '\t', space: ' ', pipe: '|',
+        };
+        const fromSep = cfg.from_sep === 'custom' ? (cfg.custom_from || ',') : (sepMap[cfg.from_sep] || '\n');
+        const toSep = cfg.to_sep === 'custom' ? (cfg.custom_to || ',') : (sepMap[cfg.to_sep] || ',');
+        const doTrim = cfg.trim !== 'false';
+        const removeEmpty = cfg.remove_empty !== 'false';
+
+        let items = input.split(fromSep);
+        if (doTrim) items = items.map(s => s.trim());
+        if (removeEmpty) items = items.filter(Boolean);
+
+        let result: string;
+        switch (action) {
+          case 'sort': result = [...items].sort((a, b) => a.localeCompare(b)).join(toSep); break;
+          case 'unique': result = [...new Set(items)].join(toSep); break;
+          case 'count': result = `${items.length} items`; break;
+          default: result = items.join(toSep);
+        }
+        return { output: result, meta: `${items.length} items | From: ${cfg.from_sep || 'newline'} → To: ${cfg.to_sep || 'comma'}` };
+      }
+
       default:
         return { output: 'Tool not implemented.' };
     }

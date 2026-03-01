@@ -133,6 +133,12 @@ const actionConfig: Record<string, Action[]> = {
     { id: 'union', label: 'Union' },
     { id: 'stats', label: 'Stats' },
   ],
+  'text-separator': [
+    { id: 'default', label: 'Convert' },
+    { id: 'sort', label: 'Sort' },
+    { id: 'unique', label: 'Unique' },
+    { id: 'count', label: 'Count' },
+  ],
 };
 
 const sampleInput: Record<string, string> = {
@@ -148,14 +154,88 @@ const sampleInput: Record<string, string> = {
   'list-splitter': 'apple\nbanana\ncherry\ndate\nfig\ngrape\nhoneydew\nkiwi\nlemon\nmango',
   'csv-to-sql': 'id,name,email,active\n1,Alice,alice@example.com,true\n2,Bob,bob@example.com,false\n3,Carol,carol@example.com,true',
   'list-compare': 'apple\nbanana\ncherry\ndate\nfig',
+  'text-separator': 'apple, banana, cherry, date, fig, grape',
 };
 
 const sampleSecondInput: Record<string, string> = {
   'regexp-tester': 'mail me at hello@example.com and admin@forge.dev',
   'text-diff': 'line 1\nline 2 changed\nline 4',
-  'list-splitter': 'mode=items_per_group\nvalue=3\ndedupe=none',
-  'csv-to-sql': 'table=users\nbatch=250\nheader=true',
   'list-compare': 'banana\ncherry\ngrape\nhoneydew\nfig',
+};
+
+type ControlField = {
+  key: string;
+  label: string;
+  type: 'select' | 'text' | 'number' | 'checkbox';
+  options?: { value: string; label: string }[];
+  default: string;
+  placeholder?: string;
+};
+
+const toolControls: Record<string, ControlField[]> = {
+  'list-splitter': [
+    { key: 'mode', label: 'Split mode', type: 'select', default: 'items_per_group', options: [
+      { value: 'items_per_group', label: 'Items per batch' },
+      { value: 'max_chars_per_group', label: 'Max chars per batch' },
+      { value: 'target_group_count', label: 'Target batch count' },
+    ]},
+    { key: 'value', label: 'Value', type: 'number', default: '5', placeholder: 'e.g. 5' },
+    { key: 'delimiter', label: 'Delimiter', type: 'select', default: 'auto', options: [
+      { value: 'auto', label: 'Auto-detect' },
+      { value: 'newline', label: 'Newline' },
+      { value: 'comma', label: 'Comma' },
+      { value: 'tab', label: 'Tab' },
+    ]},
+    { key: 'dedupe', label: 'Dedup', type: 'select', default: 'none', options: [
+      { value: 'none', label: 'None' },
+      { value: 'case_sensitive', label: 'Case-sensitive' },
+      { value: 'case_insensitive', label: 'Case-insensitive' },
+    ]},
+  ],
+  'csv-to-sql': [
+    { key: 'table', label: 'Table', type: 'text', default: 'my_table', placeholder: 'Table name' },
+    { key: 'schema', label: 'Schema', type: 'text', default: '', placeholder: 'Schema (optional)' },
+    { key: 'batch', label: 'Batch size', type: 'number', default: '250', placeholder: '250' },
+    { key: 'header', label: 'Has header', type: 'select', default: 'true', options: [
+      { value: 'true', label: 'Yes' },
+      { value: 'false', label: 'No' },
+    ]},
+    { key: 'quote_identifiers', label: 'Quote IDs', type: 'select', default: 'false', options: [
+      { value: 'false', label: 'No' },
+      { value: 'true', label: 'Yes' },
+    ]},
+  ],
+  'text-separator': [
+    { key: 'from_sep', label: 'From', type: 'select', default: 'newline', options: [
+      { value: 'newline', label: 'Newline' },
+      { value: 'comma', label: 'Comma' },
+      { value: 'semicolon', label: 'Semicolon' },
+      { value: 'tab', label: 'Tab' },
+      { value: 'space', label: 'Space' },
+      { value: 'pipe', label: 'Pipe |' },
+      { value: 'custom', label: 'Custom' },
+    ]},
+    { key: 'to_sep', label: 'To', type: 'select', default: 'comma', options: [
+      { value: 'newline', label: 'Newline' },
+      { value: 'comma', label: 'Comma' },
+      { value: 'comma_space', label: 'Comma + Space' },
+      { value: 'semicolon', label: 'Semicolon' },
+      { value: 'tab', label: 'Tab' },
+      { value: 'space', label: 'Space' },
+      { value: 'pipe', label: 'Pipe |' },
+      { value: 'custom', label: 'Custom' },
+    ]},
+    { key: 'custom_from', label: 'Custom from', type: 'text', default: '', placeholder: 'Custom separator' },
+    { key: 'custom_to', label: 'Custom to', type: 'text', default: '', placeholder: 'Custom separator' },
+    { key: 'trim', label: 'Trim items', type: 'select', default: 'true', options: [
+      { value: 'true', label: 'Yes' },
+      { value: 'false', label: 'No' },
+    ]},
+    { key: 'remove_empty', label: 'Remove empty', type: 'select', default: 'true', options: [
+      { value: 'true', label: 'Yes' },
+      { value: 'false', label: 'No' },
+    ]},
+  ],
 };
 
 /** Map tool IDs to Prism language for syntax highlighting */
@@ -176,7 +256,7 @@ const highlightLang: Record<string, string> = {
   'csv-to-sql': 'sql',
 };
 
-const needsSecondInput = new Set(['regexp-tester', 'text-diff', 'hash-generator', 'list-splitter', 'csv-to-sql', 'list-compare']);
+const needsSecondInput = new Set(['regexp-tester', 'text-diff', 'hash-generator', 'list-compare']);
 const needsPreview = new Set(['html-preview', 'markdown-preview', 'base64-image']);
 
 export function ToolWorkbench({ toolId }: { toolId: string }) {
@@ -192,6 +272,20 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
   const [wrapInput, setWrapInput] = useState(true);
   const [wrapOutput, setWrapOutput] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
+
+  // Tool-specific config controls state
+  const controls = toolControls[toolId] ?? [];
+  const [configValues, setConfigValues] = useState<Record<string, string>>({});
+
+  const setConfigValue = (key: string, value: string) => {
+    setConfigValues(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Serialize config state to key=value string for engine
+  const serializedConfig = useMemo(() => {
+    if (controls.length === 0) return '';
+    return controls.map(c => `${c.key}=${configValues[c.key] ?? c.default}`).join('\n');
+  }, [controls, configValues]);
 
   const { copy, copied } = useClipboard();
   const [copiedInput, setCopiedInput] = useState(false);
@@ -214,6 +308,10 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
     setQrDataUrl('');
     setShowHistory(false);
     setActiveAction((actionConfig[toolId] ?? [{ id: 'default', label: 'Run' }])[0].id);
+    // Reset config to defaults
+    const defs: Record<string, string> = {};
+    for (const c of (toolControls[toolId] ?? [])) defs[c.key] = c.default;
+    setConfigValues(defs);
   }, [toolId]);
 
   const runRef = useRef<(action?: string) => Promise<void>>();
@@ -230,7 +328,8 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
         return;
       }
 
-      const result = await processTool(toolId, input, { action, secondInput });
+      const effectiveSecondInput = controls.length > 0 ? serializedConfig : secondInput;
+      const result = await processTool(toolId, input, { action, secondInput: effectiveSecondInput });
       setOutput(result.output);
       setPreviewHtml(result.previewHtml ?? '');
       setMeta(result.meta ?? '');
@@ -238,7 +337,7 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
     } finally {
       setLoading(false);
     }
-  }, [toolId, input, secondInput, activeAction, save]);
+  }, [toolId, input, secondInput, serializedConfig, controls.length, activeAction, save]);
 
   useEffect(() => { runRef.current = run; }, [run]);
 
@@ -426,10 +525,54 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
               onChange={(e) => setInput(e.target.value)}
               aria-label="Tool input"
             />
+            {controls.length > 0 && (
+              <div className="mt-2 flex flex-wrap items-end gap-2 rounded-lg border p-2.5" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+                {controls.map((ctrl) => {
+                  const val = configValues[ctrl.key] ?? ctrl.default;
+                  // Hide custom fields unless the related select is set to 'custom'
+                  if (ctrl.key === 'custom_from' && configValues['from_sep'] !== 'custom') return null;
+                  if (ctrl.key === 'custom_to' && configValues['to_sep'] !== 'custom') return null;
+                  return (
+                    <div key={ctrl.key} className="flex flex-col gap-0.5">
+                      <label className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>{ctrl.label}</label>
+                      {ctrl.type === 'select' && ctrl.options ? (
+                        <select
+                          value={val}
+                          onChange={(e) => setConfigValue(ctrl.key, e.target.value)}
+                          className="rounded-md border px-2 py-1 text-xs"
+                          style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                        >
+                          {ctrl.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                        </select>
+                      ) : ctrl.type === 'number' ? (
+                        <input
+                          type="number"
+                          value={val}
+                          min={1}
+                          onChange={(e) => setConfigValue(ctrl.key, e.target.value)}
+                          placeholder={ctrl.placeholder}
+                          className="w-20 rounded-md border px-2 py-1 text-xs"
+                          style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={val}
+                          onChange={(e) => setConfigValue(ctrl.key, e.target.value)}
+                          placeholder={ctrl.placeholder}
+                          className="w-24 rounded-md border px-2 py-1 text-xs"
+                          style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             {needsSecondInput.has(toolId) && (
               <textarea
                 className={`editor mt-2 h-24 ${wrapInput ? '' : 'whitespace-pre'}`}
-                placeholder={toolId === 'hash-generator' ? 'Secret key (optional, for HMAC)' : 'Secondary input'}
+                placeholder={toolId === 'hash-generator' ? 'Secret key (optional, for HMAC)' : toolId === 'list-compare' ? 'List B (one item per line)' : 'Secondary input'}
                 value={secondInput}
                 wrap={wrapInput ? 'soft' : 'off'}
                 onChange={(e) => setSecondInput(e.target.value)}

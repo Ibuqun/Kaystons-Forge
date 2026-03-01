@@ -24,6 +24,7 @@ import {
   PhotoIcon,
   QrCodeIcon,
   ScaleIcon,
+  Bars3BottomLeftIcon,
   SparklesIcon,
   TableCellsIcon,
   VariableIcon,
@@ -82,6 +83,7 @@ export const tools: ToolDefinition[] = [
   { id: 'list-splitter', name: 'List Splitter', description: 'Split lists into batches', category: 'data', icon: ListBulletIcon, keywords: ['list', 'split', 'batch', 'chunk'] },
   { id: 'csv-to-sql', name: 'CSV to SQL INSERT', description: 'Generate SQL INSERT from CSV', category: 'data', icon: CircleStackIcon, keywords: ['csv', 'sql', 'insert', 'import'] },
   { id: 'list-compare', name: 'List Compare', description: 'Compare lists, find differences', category: 'data', icon: ScaleIcon, keywords: ['list', 'compare', 'diff', 'venn', 'intersection'] },
+  { id: 'text-separator', name: 'Text Separator', description: 'Re-separate text with any delimiter', category: 'data', icon: Bars3BottomLeftIcon, keywords: ['separator', 'delimiter', 'join', 'split', 'comma', 'newline'] },
 ];
 
 export const defaultToolId = 'json-format-validate';
