@@ -11,6 +11,8 @@ on:
 jobs:
   audit:
     name: Dependency Audit
+    # Skip Dependabot PRs — they have no access to repo secrets
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,6 +34,7 @@ jobs:
 
   codeql:
     name: CodeQL Static Analysis
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -56,6 +59,7 @@ jobs:
 
   secret-scan:
     name: Secret Scanning
+    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
