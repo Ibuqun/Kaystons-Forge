@@ -3,7 +3,7 @@ import { createPatch, diffLines } from 'diff';
 import { parse as csvParse, unparse as csvUnparse } from 'papaparse';
 import { load as yamlLoad, dump as yamlDump } from 'js-yaml';
 import { format as formatSql } from 'sql-formatter';
-import { minify as terserMinify } from 'terser';
+import { minify_sync as terserMinifySync } from 'terser';
 import { XMLParser } from 'fast-xml-parser';
 import xmlFormat from 'xml-formatter';
 import htmlToJsx from 'html-to-jsx';
@@ -19,10 +19,15 @@ import { curlToJs, curlToPython, curlToPhp } from './curl-to-code';
 import { jsonToTypeScript, jsonToPython, jsonToGo, jsonToRust, type JsonValue } from './json-to-code';
 import { decodeCertificate } from './cert-decoder';
 import { loadAll as yamlLoadAll } from 'js-yaml';
+import { marked } from 'marked';
 
 export interface ProcessOptions {
   action?: string;
   secondInput?: string;
+  dedupe?: boolean;
+  pattern?: string;
+  flags?: string;
+  [key: string]: unknown;
 }
 
 export interface ProcessResult {
@@ -345,7 +350,7 @@ function getNextCronRuns(expr: string, count: number): string[] {
   return results.length ? results : ['No runs found in next year'];
 }
 
-export async function processTool(toolId: string, input: string, options: ProcessOptions = {}): Promise<ProcessResult> {
+export function processTool(toolId: string, input: string, options: ProcessOptions = {}): ProcessResult {
   const action = options.action ?? 'default';
 
   try {
@@ -523,7 +528,7 @@ export async function processTool(toolId: string, input: string, options: Proces
 
       case 'js-beautify': {
         if (action === 'minify') {
-          const out = await terserMinify(input, { compress: true, mangle: true });
+          const out = terserMinifySync(input, { compress: true, mangle: true });
           return { output: out.code || '' };
         }
         return { output: beautifyJs(input) };
@@ -638,8 +643,7 @@ export async function processTool(toolId: string, input: string, options: Proces
         return { output: htmlToJsx(input) };
 
       case 'markdown-preview': {
-        const { marked } = await import('marked');
-        const rawHtml = await marked.parse(input || '', { gfm: true, breaks: false });
+        const rawHtml = marked.parse(input || '', { gfm: true, breaks: false }) as string;
         // Sanitize to prevent XSS - strip script tags, event handlers, etc.
         const sanitized = rawHtml
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -937,24 +941,34 @@ export async function processTool(toolId: string, input: string, options: Proces
       }
 
       case 'line-sort': {
+        if (!input) return { output: '', meta: '0 lines | 0 duplicate(s)' };
         const lines = input.split('\n');
-        let result: string[];
 
         // Build a first-seen Map iteratively — Map(array) keeps last-seen, not first-seen
-        const buildFirstSeenMap = (): Map<string, string> => {
+        const buildFirstSeenMap = (src: string[]): Map<string, string> => {
           const seen = new Map<string, string>();
-          for (const l of lines) {
+          for (const l of src) {
             const key = l.trim().toLowerCase();
             if (key && !seen.has(key)) seen.set(key, l.trim());
           }
           return seen;
         };
 
+        // Apply dedupe option before sorting when explicitly requested, preserving first-seen casing
+        const workingLines = options.dedupe === true
+          ? [...buildFirstSeenMap(lines).values()]
+          : lines;
+
+        let result: string[];
         switch (action) {
-          case 'sort-desc': result = [...lines].sort((a, b) => b.localeCompare(a)); break;
-          case 'dedupe': result = [...buildFirstSeenMap().values()]; break;
-          case 'dedupe-sort': result = [...buildFirstSeenMap().values()].sort((a, b) => a.localeCompare(b)); break;
-          default: result = [...lines].sort((a, b) => a.localeCompare(b));
+          case 'sort-asc':
+          case 'default':
+            result = [...workingLines].sort((a, b) => a.localeCompare(b));
+            break;
+          case 'sort-desc': result = [...workingLines].sort((a, b) => b.localeCompare(a)); break;
+          case 'dedupe': result = [...buildFirstSeenMap(lines).values()]; break;
+          case 'dedupe-sort': result = [...buildFirstSeenMap(lines).values()].sort((a, b) => a.localeCompare(b)); break;
+          default: result = [...workingLines].sort((a, b) => a.localeCompare(b));
         }
 
         // Stats use same normalization (trim + lowercase) so they match dedupe output

@@ -194,6 +194,7 @@ export function parsePhpArraySyntax(input: string): PhpValue {
         else str += text[pos];
         pos++;
       }
+      if (pos >= text.length) throw new Error(`Unterminated string: missing closing ${q}`);
       pos++; // closing quote
       return str;
     }
@@ -220,6 +221,9 @@ export function parsePhpArraySyntax(input: string): PhpValue {
         skip();
         if (text[pos] === ',') pos++;
         skip();
+      }
+      if (pos >= text.length && text[text.length - 1] !== close) {
+        throw new Error(`Unclosed array: missing closing ${close}`);
       }
       pos++; // skip close
       const keys = Object.keys(result);
