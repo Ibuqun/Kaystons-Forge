@@ -16,12 +16,21 @@ type State = {
 };
 
 const defaults: AppSettings = {
-  theme: 'dark',
+  theme: 'light',
   editorFontSize: 14,
   editorTabSize: 2,
   autoFormatOnPaste: false,
   preserveHistory: true,
 };
+
+// Migrate old localStorage key
+if (typeof window !== 'undefined') {
+  const old = localStorage.getItem('adlers-forge-ui');
+  if (old && !localStorage.getItem('kaystons-forge-ui')) {
+    localStorage.setItem('kaystons-forge-ui', old);
+    localStorage.removeItem('adlers-forge-ui');
+  }
+}
 
 export const useAppStore = create<State>()(
   persist(
@@ -35,6 +44,6 @@ export const useAppStore = create<State>()(
       setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
       updateSettings: (partial) => set((s) => ({ settings: { ...s.settings, ...partial } })),
     }),
-    { name: 'adlers-forge-ui' },
+    { name: 'kaystons-forge-ui' },
   ),
 );

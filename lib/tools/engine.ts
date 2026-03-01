@@ -8,6 +8,9 @@ import { XMLParser } from 'fast-xml-parser';
 import xmlFormat from 'xml-formatter';
 import htmlToJsx from 'html-to-jsx';
 import { jwtDecode } from 'jwt-decode';
+import { runSplitter, parseConfig as parseSplitterConfig, type SplitterConfig } from './list-splitter';
+import { runCsvToSql, type SqlDialect } from './csv-to-sql';
+import { runListCompare } from './list-compare';
 import { ulid, decodeTime } from 'ulidx';
 import { v4 as uuidv4, v7 as uuidv7 } from 'uuid';
 
@@ -586,6 +589,31 @@ export async function processTool(toolId: string, input: string, options: Proces
       case 'sql-formatter': {
         const language = action === 'default' ? 'sql' : action;
         return { output: formatSql(input, { language: language as any }) };
+      }
+
+      case 'list-splitter': {
+        const cfg = parseSplitterConfig(options.secondInput || '');
+        const template = action === 'default' ? (cfg.template || 'plain') : action;
+        const config: SplitterConfig = {
+          delimiter: cfg.delimiter || 'auto',
+          mode: cfg.mode || 'items_per_group',
+          value: cfg.value || 5,
+          dedupe: cfg.dedupe || 'none',
+          template: template as SplitterConfig['template'],
+        };
+        const result = runSplitter(input, config);
+        return { output: result.output, meta: result.meta };
+      }
+
+      case 'csv-to-sql': {
+        const dialect = (action === 'default' ? 'mysql' : action) as SqlDialect;
+        const result = runCsvToSql(input, dialect, options.secondInput || '');
+        return { output: result.output, meta: result.meta };
+      }
+
+      case 'list-compare': {
+        const result = runListCompare(input, options.secondInput || '', action || 'intersection');
+        return { output: result.output, meta: result.meta };
       }
 
       default:

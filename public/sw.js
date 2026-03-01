@@ -1,10 +1,10 @@
-const CACHE = 'adlers-forge-v1';
+const CACHE = 'kaystons-forge-v1';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
       cache.addAll(['/', '/manifest.json'])
-    )
+    ).then(() => caches.delete('adlers-forge-v1'))
   );
 });
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Adler's Forge is a privacy-first, browser-based developer utilities suite. All processing runs client-side. Built with Next.js 14 App Router, exported as a fully static site (`output: 'export'`).
+Kayston's Forge is a privacy-first, browser-based developer utilities suite. All processing runs client-side. Built with Next.js 14 App Router, exported as a fully static site (`output: 'export'`).
 
 ## Commands
 
@@ -32,8 +32,8 @@ The entire tool system is driven by three files:
 To add a new tool: add entry to registry → add case to engine switch → optionally add action config in ToolWorkbench.
 
 ### State Management
-- **Zustand** (`lib/store.ts`) — UI state: sidebar toggle, active tool, command palette, settings. Persisted to localStorage as `adlers-forge-ui`.
-- **Dexie/IndexedDB** (`lib/db.ts`) — `AdlersForgeDB` with tables: `history` (per-tool input/output), `favorites`, `settings`.
+- **Zustand** (`lib/store.ts`) — UI state: sidebar toggle, active tool, command palette, settings. Persisted to localStorage as `kaystons-forge-ui`.
+- **Dexie/IndexedDB** (`lib/db.ts`) — `KaystonsForgeDB` with tables: `history` (per-tool input/output), `favorites`, `settings`.
 - **`hooks/useHistory.ts`** — Save/restore/clear history per tool (max 50 entries per tool).
 
 ### Styling

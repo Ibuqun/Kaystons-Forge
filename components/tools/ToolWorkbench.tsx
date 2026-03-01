@@ -114,23 +114,48 @@ const actionConfig: Record<string, Action[]> = {
     { id: 'sqlite', label: 'SQLite' },
     { id: 'bigquery', label: 'BigQuery' },
   ],
+  'list-splitter': [
+    { id: 'plain', label: 'Plain' },
+    { id: 'sql_in', label: 'SQL IN' },
+    { id: 'quoted_csv', label: 'CSV' },
+    { id: 'json_array', label: 'JSON' },
+  ],
+  'csv-to-sql': [
+    { id: 'mysql', label: 'MySQL' },
+    { id: 'postgresql', label: 'PostgreSQL' },
+    { id: 'sqlite', label: 'SQLite' },
+    { id: 'sqlserver', label: 'SQL Server' },
+  ],
+  'list-compare': [
+    { id: 'intersection', label: 'Intersection' },
+    { id: 'only-a', label: 'Only A' },
+    { id: 'only-b', label: 'Only B' },
+    { id: 'union', label: 'Union' },
+    { id: 'stats', label: 'Stats' },
+  ],
 };
 
 const sampleInput: Record<string, string> = {
-  'json-format-validate': '{"name":"Adlers Forge","tools":30,"active":true}',
-  'yaml-to-json': 'name: Adlers Forge\ntools: 30\nactive: true',
-  'json-to-yaml': '{"name":"Adlers Forge","tools":30}',
+  'json-format-validate': '{"name":"Kaystons Forge","tools":30,"active":true}',
+  'yaml-to-json': 'name: Kaystons Forge\ntools: 30\nactive: true',
+  'json-to-yaml': '{"name":"Kaystons Forge","tools":30}',
   'url-parser': 'https://example.com:8080/path?q=forge#hash',
   'regexp-tester': '\\b\\w+@\\w+\\.\\w+\\b',
   'text-diff': 'line 1\nline 2\nline 3',
   'number-base': 'FF|16',
   'sql-formatter': 'select id,name from users where active = 1 order by created_at desc;',
   'html-to-jsx': '<div class="card"><label for="email">Email</label></div>',
+  'list-splitter': 'apple\nbanana\ncherry\ndate\nfig\ngrape\nhoneydew\nkiwi\nlemon\nmango',
+  'csv-to-sql': 'id,name,email,active\n1,Alice,alice@example.com,true\n2,Bob,bob@example.com,false\n3,Carol,carol@example.com,true',
+  'list-compare': 'apple\nbanana\ncherry\ndate\nfig',
 };
 
 const sampleSecondInput: Record<string, string> = {
   'regexp-tester': 'mail me at hello@example.com and admin@forge.dev',
   'text-diff': 'line 1\nline 2 changed\nline 4',
+  'list-splitter': 'mode=items_per_group\nvalue=3\ndedupe=none',
+  'csv-to-sql': 'table=users\nbatch=250\nheader=true',
+  'list-compare': 'banana\ncherry\ngrape\nhoneydew\nfig',
 };
 
 /** Map tool IDs to Prism language for syntax highlighting */
@@ -148,9 +173,10 @@ const highlightLang: Record<string, string> = {
   'sql-formatter': 'sql',
   'jwt-debugger': 'json',
   'html-to-jsx': 'jsx',
+  'csv-to-sql': 'sql',
 };
 
-const needsSecondInput = new Set(['regexp-tester', 'text-diff', 'hash-generator']);
+const needsSecondInput = new Set(['regexp-tester', 'text-diff', 'hash-generator', 'list-splitter', 'csv-to-sql', 'list-compare']);
 const needsPreview = new Set(['html-preview', 'markdown-preview', 'base64-image']);
 
 export function ToolWorkbench({ toolId }: { toolId: string }) {

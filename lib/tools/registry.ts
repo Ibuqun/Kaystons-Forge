@@ -15,6 +15,7 @@ import {
   HashtagIcon,
   KeyIcon,
   LinkIcon,
+  ListBulletIcon,
   LockClosedIcon,
   MagnifyingGlassCircleIcon,
   MagnifyingGlassIcon,
@@ -22,6 +23,7 @@ import {
   PencilSquareIcon,
   PhotoIcon,
   QrCodeIcon,
+  ScaleIcon,
   SparklesIcon,
   TableCellsIcon,
   VariableIcon,
@@ -77,6 +79,9 @@ export const tools: ToolDefinition[] = [
   { id: 'html-to-jsx', name: 'HTML to JSX', description: 'Convert HTML markup to JSX', category: 'data', icon: CodeBracketIcon, keywords: ['html', 'jsx', 'react'] },
   { id: 'markdown-preview', name: 'Markdown Preview', description: 'Render Markdown to HTML', category: 'data', icon: DocumentTextIcon, keywords: ['markdown', 'md', 'preview'] },
   { id: 'sql-formatter', name: 'SQL Formatter', description: 'Format SQL across dialects', category: 'data', icon: CircleStackIcon, keywords: ['sql', 'query', 'formatter'] },
+  { id: 'list-splitter', name: 'List Splitter', description: 'Split lists into batches', category: 'data', icon: ListBulletIcon, keywords: ['list', 'split', 'batch', 'chunk'] },
+  { id: 'csv-to-sql', name: 'CSV to SQL INSERT', description: 'Generate SQL INSERT from CSV', category: 'data', icon: CircleStackIcon, keywords: ['csv', 'sql', 'insert', 'import'] },
+  { id: 'list-compare', name: 'List Compare', description: 'Compare lists, find differences', category: 'data', icon: ScaleIcon, keywords: ['list', 'compare', 'diff', 'venn', 'intersection'] },
 ];
 
 export const defaultToolId = 'json-format-validate';

@@ -44,7 +44,7 @@ export function AppShell({ toolId }: { toolId: string }) {
         useAppStore.getState().toggleSidebar();
       }
       if (e.key === 'Escape') {
-        window.dispatchEvent(new CustomEvent('adlers:escape'));
+        window.dispatchEvent(new CustomEvent('kaystons:escape'));
       }
     };
 

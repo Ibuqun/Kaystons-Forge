@@ -36,11 +36,11 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
           style={{ background: 'var(--accent-subtle)', color: 'var(--accent)' }}
         >
-          AF
+          KF
         </div>
         {!collapsed && (
           <span style={{ fontFamily: 'var(--font-display)', fontSize: '16px', letterSpacing: '-0.01em' }}>
-            Adler&apos;s Forge
+            Kayston&apos;s Forge
           </span>
         )}
       </div>
