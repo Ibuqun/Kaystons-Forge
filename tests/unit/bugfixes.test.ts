@@ -122,3 +122,82 @@ describe('fix: JS beautify quality', () => {
     expect(out.output).toContain('  ');
   });
 });
+
+describe('Codex fix #1: Algorithmic DoS in List Compare', () => {
+  it('does not freeze on massive fuzzy matching inputs due to length limits', async () => {
+    const { compareLists } = await import('@/lib/tools/list-compare');
+    const listA = Array.from({ length: 500 }, (_, i) => `long_string_a_${i}_` + 'a'.repeat(600));
+    const listB = Array.from({ length: 500 }, (_, i) => `long_string_b_${i}_` + 'b'.repeat(600));
+    const start = Date.now();
+    const result = compareLists(listA, listB, { caseSensitive: false, fuzzyMatch: true, fuzzyDistance: 2 });
+    const end = Date.now();
+    expect(end - start).toBeLessThan(1000); // Should resolve quickly, ignoring the long strings
+    expect(result.intersection.length).toBe(0);
+  });
+});
+
+describe('Codex fix #2: Negative Unix Timestamps', () => {
+  it('calculates negative timestamps precisely for seconds and milliseconds', async () => {
+    // Length is 11, should still be treated as seconds because absolute length is 10.
+    const outSeconds = await processTool('unix-time-converter', '-1704067200');
+    expect(outSeconds.output).toContain('1916'); // roughly 1915/1916 depending on UTC
+    expect(outSeconds.output).toContain('Unix Seconds: -1704067200');
+
+    // Milliseconds example
+    const outMilli = await processTool('unix-time-converter', '-1704067200000');
+    expect(outMilli.output).toContain('Unix Seconds: -1704067200');
+  });
+});
+
+describe('Codex fix #3: Multiple Document Support in YAML', () => {
+  it('parses multiple docs joined by ---', async () => {
+    const out = await processTool('yaml-to-json', 'a: 1\n---\nb: 2');
+    expect(out.output).toContain('"a": 1');
+    expect(out.output).toContain('"b": 2');
+    expect(out.output).toContain('['); // Root should be array
+    expect(out.output).toContain(']');
+  });
+
+  it('parses single doc as object not array', async () => {
+    const out = await processTool('yaml-to-json', 'a: 1');
+    expect(out.output).not.toContain('[');
+  });
+});
+
+describe('Codex fix #4: Hex Color Alpha Channel', () => {
+  it('preserves alpha for 8-digit hex', async () => {
+    const out = await processTool('color-converter', '#ff000088');
+    expect(out.output).toContain('rgba(255, 0, 0, 0.53'); // 0x88 is ~0.53
+    expect(out.output).toContain('hsla(0, 100%, 50%, 0.53');
+  });
+
+  it('outputs regular hex if no alpha', async () => {
+    const out = await processTool('color-converter', '#ff0000');
+    expect(out.output).not.toContain('rgba');
+  });
+});
+
+describe('Codex fix #5: URL Decoder + Corruption', () => {
+  it('keeps plus symbols when standard decoding', async () => {
+    const out = await processTool('url-encode-decode', 'hello+world%2Bplus', { action: 'decode' });
+    expect(out.output).toBe('hello+world+plus');
+  });
+
+  it('converts plus symbols to space when form decoding', async () => {
+    const out = await processTool('url-encode-decode', 'hello+world%2Bplus', { action: 'form-decode' });
+    expect(out.output).toBe('hello world+plus');
+  });
+});
+
+describe('Codex fix #6: Loose JSON Parser ReDoS & Functionality', () => {
+  it('parses valid loose JSON rapidly without freezing', async () => {
+    const out = await processTool('json-format-validate', "{a: 'hello \\\\" + "a".repeat(1000) + "'}");
+    expect(out.output).toContain('"a"');
+  });
+
+  it('blocks dangerous functions', async () => {
+    const out = await processTool('json-format-validate', "{a: () => alert(1)}");
+    expect(out.output).toContain('error');
+    expect(out.output).not.toContain('alert');
+  });
+});
