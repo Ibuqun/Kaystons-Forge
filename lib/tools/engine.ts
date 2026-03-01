@@ -645,6 +645,166 @@ export async function processTool(toolId: string, input: string, options: Proces
         return { output: result, meta: `${items.length} items | From: ${cfg.from_sep || 'newline'} → To: ${cfg.to_sep || 'comma'}` };
       }
 
+      case 'string-case': {
+        const words = input
+          .replace(/([a-z])([A-Z])/g, '$1 $2')
+          .replace(/[_\-]+/g, ' ')
+          .trim()
+          .split(/\s+/)
+          .filter(Boolean)
+          .map((w) => w.toLowerCase());
+        if (!words.length) return { output: '' };
+        switch (action) {
+          case 'pascal': return { output: words.map((w) => w[0].toUpperCase() + w.slice(1)).join('') };
+          case 'snake':  return { output: words.join('_') };
+          case 'kebab':  return { output: words.join('-') };
+          case 'screaming': return { output: words.join('_').toUpperCase() };
+          case 'title':  return { output: words.map((w) => w[0].toUpperCase() + w.slice(1)).join(' ') };
+          default:       return { output: words[0] + words.slice(1).map((w) => w[0].toUpperCase() + w.slice(1)).join('') };
+        }
+      }
+
+      case 'color-converter': {
+        const raw = input.trim();
+        let r = 0, g = 0, b = 0;
+        const hexMatch = raw.match(/^#?([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
+        if (hexMatch) {
+          const h = hexMatch[1];
+          if (h.length === 3 || h.length === 4) {
+            r = parseInt(h[0] + h[0], 16); g = parseInt(h[1] + h[1], 16); b = parseInt(h[2] + h[2], 16);
+          } else {
+            r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16);
+          }
+        } else {
+          const rgbMatch = raw.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+          if (rgbMatch) {
+            r = parseInt(rgbMatch[1]); g = parseInt(rgbMatch[2]); b = parseInt(rgbMatch[3]);
+          } else {
+            const hslMatch = raw.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%?\s*,\s*([\d.]+)%?\s*\)/i);
+            if (!hslMatch) return { output: 'Invalid color. Use #hex, rgb(r,g,b), or hsl(h,s%,l%).' };
+            const hDeg = parseFloat(hslMatch[1]) / 360;
+            const s = parseFloat(hslMatch[2]) / 100;
+            const l = parseFloat(hslMatch[3]) / 100;
+            const hue2rgb = (p: number, q: number, t: number) => {
+              if (t < 0) t += 1; if (t > 1) t -= 1;
+              if (t < 1/6) return p + (q - p) * 6 * t;
+              if (t < 1/2) return q;
+              if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+              return p;
+            };
+            const q2 = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p2 = 2 * l - q2;
+            r = Math.round(hue2rgb(p2, q2, hDeg + 1/3) * 255);
+            g = Math.round(hue2rgb(p2, q2, hDeg) * 255);
+            b = Math.round(hue2rgb(p2, q2, hDeg - 1/3) * 255);
+          }
+        }
+        r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
+        const r1 = r/255, g1 = g/255, b1 = b/255;
+        const max = Math.max(r1, g1, b1), min = Math.min(r1, g1, b1), d = max - min;
+        const l2 = (max + min) / 2;
+        const s2 = d === 0 ? 0 : d / (l2 > 0.5 ? 2 - max - min : max + min);
+        let hue = 0;
+        if (d !== 0) {
+          switch (max) {
+            case r1: hue = ((g1 - b1) / d + (g1 < b1 ? 6 : 0)) / 6; break;
+            case g1: hue = ((b1 - r1) / d + 2) / 6; break;
+            case b1: hue = ((r1 - g1) / d + 4) / 6; break;
+          }
+        }
+        const sv = max === 0 ? 0 : d / max;
+        const toHex = (n: number) => n.toString(16).padStart(2, '0');
+        const hex = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        const hDeg2 = Math.round(hue * 360);
+        if (action === 'to-rgb') return { output: `rgb(${r}, ${g}, ${b})` };
+        if (action === 'to-hsl') return { output: `hsl(${hDeg2}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 100)}%)` };
+        if (action === 'to-hsv') return { output: `hsv(${hDeg2}, ${Math.round(sv * 100)}%, ${Math.round(max * 100)}%)` };
+        return {
+          output: [
+            `HEX:  ${hex}`,
+            `RGB:  rgb(${r}, ${g}, ${b})`,
+            `HSL:  hsl(${hDeg2}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 100)}%)`,
+            `HSV:  hsv(${hDeg2}, ${Math.round(sv * 100)}%, ${Math.round(max * 100)}%)`,
+            ``,
+            `--color: ${hex};`,
+            `--color-rgb: ${r}, ${g}, ${b};`,
+          ].join('\n'),
+        };
+      }
+
+      case 'random-string': {
+        const ctrl: Record<string, string> = {};
+        for (const line of (options.secondInput || '').split('\n')) {
+          const eq = line.indexOf('='); if (eq > 0) ctrl[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
+        }
+        const length = Math.max(1, Math.min(4096, parseInt(ctrl.length || '32')));
+        const count  = Math.max(1, Math.min(100, parseInt(ctrl.count || '1')));
+        const charsets: Record<string, string> = {
+          default:  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+          hex:      '0123456789abcdef',
+          base64:   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+          symbols:  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?',
+        };
+        const words = ['correct','horse','battery','staple','apple','table','river','cloud','stone','forest','bridge','ocean','light','storm','bread','chair','flame','sword','tower','dream','spark','amber','chess','drift','ember','frost','glide','haven','ivory','jewel'];
+        const results: string[] = [];
+        for (let i = 0; i < count; i++) {
+          if (action === 'passphrase') {
+            const wc = Math.max(3, Math.min(12, Math.round(length / 6)));
+            const arr = new Uint32Array(wc); crypto.getRandomValues(arr);
+            results.push(Array.from(arr).map((n) => words[n % words.length]).join('-'));
+          } else {
+            const charset = charsets[action] ?? charsets.default;
+            const arr = new Uint8Array(length); crypto.getRandomValues(arr);
+            results.push(Array.from(arr).map((byte) => charset[byte % charset.length]).join(''));
+          }
+        }
+        return { output: results.join('\n'), meta: `Mode: ${action || 'alphanumeric'} | Length: ${length} | Count: ${count}` };
+      }
+
+      case 'svg-to-css': {
+        const svg = input.trim();
+        if (!svg.startsWith('<svg') && !svg.startsWith('<?xml')) return { output: 'Input must be an SVG element starting with <svg.' };
+        if (action === 'url-encoded') {
+          const encoded = encodeURIComponent(svg).replace(/%20/g, ' ').replace(/%3D/g, '=').replace(/%3A/g, ':').replace(/%2F/g, '/');
+          return { output: `.icon {\n  background-image: url("data:image/svg+xml,${encoded}");\n  background-repeat: no-repeat;\n  background-size: contain;\n}` };
+        }
+        const b64 = btoa(unescape(encodeURIComponent(svg)));
+        return { output: `.icon {\n  background-image: url("data:image/svg+xml;base64,${b64}");\n  background-repeat: no-repeat;\n  background-size: contain;\n}` };
+      }
+
+      case 'hex-to-ascii': {
+        const cleaned = input.trim().replace(/0x/gi, '').replace(/[,\s]+/g, ' ');
+        const bytes = cleaned.split(' ').filter(Boolean);
+        try {
+          const chars = bytes.map((byte) => {
+            const code = parseInt(byte, 16);
+            if (isNaN(code) || code < 0) throw new Error(`Invalid hex byte: ${byte}`);
+            return String.fromCharCode(code);
+          });
+          return { output: chars.join(''), meta: `${bytes.length} bytes` };
+        } catch (e) {
+          return { output: e instanceof Error ? e.message : 'Invalid hex input' };
+        }
+      }
+
+      case 'ascii-to-hex': {
+        const bytes = [...input].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0'));
+        return { output: bytes.join(' '), meta: `${bytes.length} bytes` };
+      }
+
+      case 'line-sort': {
+        const lines = input.split('\n');
+        let result: string[];
+        switch (action) {
+          case 'sort-desc':   result = [...lines].sort((a, b) => b.localeCompare(a)); break;
+          case 'dedupe':      result = [...new Map(lines.map((l) => [l.toLowerCase(), l])).values()]; break;
+          case 'dedupe-sort': result = [...new Set(lines.map((l) => l.trim()))].filter(Boolean).sort((a, b) => a.localeCompare(b)); break;
+          default:            result = [...lines].sort((a, b) => a.localeCompare(b));
+        }
+        const dupes = lines.length - new Set(lines.map((l) => l.toLowerCase())).size;
+        return { output: result.join('\n'), meta: `${result.length} lines | ${dupes} duplicate(s)` };
+      }
+
       default:
         return { output: 'Tool not implemented.' };
     }
