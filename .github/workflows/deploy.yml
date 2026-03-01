@@ -12,7 +12,8 @@ env:
 
 jobs:
   deploy-preview:
-    if: github.event_name == 'pull_request'
+    # Skip Dependabot PRs — they have no access to repo secrets
+    if: github.event_name == 'pull_request' && github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
