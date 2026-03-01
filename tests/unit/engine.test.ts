@@ -246,4 +246,43 @@ describe("tool engine", () => {
     });
     expect(out.output).toContain("2016");
   });
+
+  it("php: unserializes string", async () => {
+    const out = await processTool("php-unserializer", 's:5:"hello";');
+    expect(out.output).toBe('"hello"');
+  });
+
+  it("php: unserializes array", async () => {
+    const out = await processTool(
+      "php-unserializer",
+      'a:2:{s:4:"name";s:5:"Alice";s:3:"age";i:30;}',
+    );
+    expect(out.output).toContain('"name"');
+    expect(out.output).toContain('"Alice"');
+  });
+
+  it("php: serializes json", async () => {
+    const out = await processTool("php-serializer", '{"name":"Alice","age":30}');
+    expect(out.output).toContain('s:4:"name"');
+    expect(out.output).toContain('s:5:"Alice"');
+    expect(out.output).toContain("i:30");
+  });
+
+  it("php: json-to-php array syntax", async () => {
+    const out = await processTool("json-to-php", '{"name":"Alice","age":30}', {
+      action: "to-array",
+    });
+    expect(out.output).toContain("'name'");
+    expect(out.output).toContain("'Alice'");
+    expect(out.output).toContain("30");
+  });
+
+  it("php: php-to-json from serialized", async () => {
+    const out = await processTool(
+      "php-to-json",
+      'a:1:{s:3:"foo";s:3:"bar";}',
+    );
+    expect(out.output).toContain('"foo"');
+    expect(out.output).toContain('"bar"');
+  });
 });
