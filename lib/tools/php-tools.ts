@@ -1,10 +1,6 @@
-type PhpValue =
-  | null
-  | boolean
-  | number
-  | string
-  | PhpValue[]
-  | Record<string, PhpValue>;
+interface PhpArray extends Array<PhpValue> {}
+interface PhpRecord extends Record<string, PhpValue> {}
+type PhpValue = null | boolean | number | string | PhpArray | PhpRecord;
 
 // ─── Deserialize ────────────────────────────────────────────────────────────
 

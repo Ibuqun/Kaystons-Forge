@@ -1,4 +1,6 @@
-type JsonValue = null | boolean | number | string | JsonValue[] | Record<string, JsonValue>;
+interface JsonArray extends Array<JsonValue> {}
+interface JsonRecord extends Record<string, JsonValue> {}
+type JsonValue = null | boolean | number | string | JsonArray | JsonRecord;
 
 function toPascalCase(s: string): string {
   return s.replace(/(^|[_\-\s])([a-zA-Z])/g, (_, __, c: string) => c.toUpperCase()).replace(/^(.)/, (c: string) => c.toUpperCase());

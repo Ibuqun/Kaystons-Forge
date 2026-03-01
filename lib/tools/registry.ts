@@ -84,6 +84,22 @@ export const tools: ToolDefinition[] = [
   { id: 'csv-to-sql', name: 'CSV to SQL INSERT', description: 'Generate SQL INSERT from CSV', category: 'data', icon: CircleStackIcon, keywords: ['csv', 'sql', 'insert', 'import'] },
   { id: 'list-compare', name: 'List Compare', description: 'Compare lists, find differences', category: 'data', icon: ScaleIcon, keywords: ['list', 'compare', 'diff', 'venn', 'intersection'] },
   { id: 'text-separator', name: 'Text Separator', description: 'Re-separate text with any delimiter', category: 'data', icon: Bars3BottomLeftIcon, keywords: ['separator', 'delimiter', 'join', 'split', 'comma', 'newline'] },
+  // ── New tools ──────────────────────────────────────────────────────────────
+  { id: 'string-case', name: 'String Case Converter', description: 'Convert between camelCase, snake_case, etc.', category: 'data', icon: VariableIcon, keywords: ['case', 'camel', 'snake', 'kebab', 'pascal'] },
+  { id: 'cron-parser', name: 'Cron Job Parser', description: 'Parse and explain cron expressions', category: 'encoding', icon: ClockIcon, keywords: ['cron', 'schedule', 'job', 'timer'] },
+  { id: 'color-converter', name: 'Color Converter', description: 'Convert between HEX, RGB, HSL, HSV', category: 'format', icon: PaintBrushIcon, keywords: ['color', 'hex', 'rgb', 'hsl', 'hsv'] },
+  { id: 'php-to-json', name: 'PHP to JSON', description: 'Convert PHP serialized data to JSON', category: 'data', icon: CodeBracketIcon, keywords: ['php', 'serialize', 'json', 'convert'] },
+  { id: 'json-to-php', name: 'JSON to PHP', description: 'Convert JSON to PHP array or serialized', category: 'data', icon: CodeBracketIcon, keywords: ['json', 'php', 'array', 'serialize'] },
+  { id: 'php-serializer', name: 'PHP Serializer', description: 'Serialize data to PHP format', category: 'data', icon: CodeBracketIcon, keywords: ['php', 'serialize', 'encode'] },
+  { id: 'php-unserializer', name: 'PHP Unserializer', description: 'Unserialize PHP data to readable form', category: 'data', icon: CodeBracketIcon, keywords: ['php', 'unserialize', 'decode'] },
+  { id: 'random-string', name: 'Random String Generator', description: 'Generate random strings and passphrases', category: 'generator', icon: SparklesIcon, keywords: ['random', 'string', 'password', 'passphrase', 'token'] },
+  { id: 'svg-to-css', name: 'SVG to CSS', description: 'Embed SVG as CSS background-image', category: 'format', icon: PaintBrushIcon, keywords: ['svg', 'css', 'background', 'data url'] },
+  { id: 'curl-to-code', name: 'cURL to Code', description: 'Convert cURL commands to code', category: 'format', icon: CodeBracketSquareIcon, keywords: ['curl', 'fetch', 'requests', 'http', 'convert'] },
+  { id: 'json-to-code', name: 'JSON to Code', description: 'Generate typed structs from JSON', category: 'format', icon: CodeBracketSquareIcon, keywords: ['json', 'typescript', 'python', 'go', 'rust', 'interface', 'struct'] },
+  { id: 'cert-decoder', name: 'Certificate Decoder (X.509)', description: 'Decode and inspect X.509 certificates', category: 'encoding', icon: LockClosedIcon, keywords: ['certificate', 'x509', 'ssl', 'tls', 'pem', 'der'] },
+  { id: 'hex-to-ascii', name: 'Hex to ASCII', description: 'Convert hex bytes to ASCII text', category: 'format', icon: HashtagIcon, keywords: ['hex', 'ascii', 'decode', 'bytes'] },
+  { id: 'ascii-to-hex', name: 'ASCII to Hex', description: 'Convert ASCII text to hex bytes', category: 'format', icon: HashtagIcon, keywords: ['ascii', 'hex', 'encode', 'bytes'] },
+  { id: 'line-sort', name: 'Line Sort/Dedupe', description: 'Sort and deduplicate lines of text', category: 'data', icon: Bars3BottomLeftIcon, keywords: ['sort', 'dedupe', 'unique', 'lines', 'text'] },
 ];
 
 export const defaultToolId = 'json-format-validate';
