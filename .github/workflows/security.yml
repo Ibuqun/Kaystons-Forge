@@ -1,8 +1,6 @@
 name: Security Checks
 
 on:
-  pull_request:
-    branches: [main]
   schedule:
     # Weekly full scan every Monday at 08:00 UTC
     - cron: '0 8 * * 1'
@@ -11,8 +9,6 @@ on:
 jobs:
   audit:
     name: Dependency Audit
-    # Skip Dependabot PRs — they have no access to repo secrets
-    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -34,7 +30,6 @@ jobs:
 
   codeql:
     name: CodeQL Static Analysis
-    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     permissions:
       actions: read
@@ -59,7 +54,6 @@ jobs:
 
   secret-scan:
     name: Secret Scanning
-    if: github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -70,6 +64,6 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
-          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          base: ${{ github.event.before || github.sha }}
+          head: ${{ github.sha }}
           extra_args: --only-verified
