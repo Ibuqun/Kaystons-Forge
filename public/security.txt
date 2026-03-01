@@ -1,0 +1,9 @@
+# Kayston's Forge — Security Contact
+# See: https://securitytxt.org/ (RFC 9116)
+
+Contact: mailto:security@kaystons.dev
+Expires: 2027-03-01T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://kaystons-forge.vercel.app/.well-known/security.txt
+Policy: https://kaystons-forge.vercel.app/security-policy.html
+Acknowledgments: https://kaystons-forge.vercel.app/security-policy.html#acknowledgments

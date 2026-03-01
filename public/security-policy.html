@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vulnerability Disclosure Policy — Kayston's Forge</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #1a1a1a; }
+    h1 { border-bottom: 2px solid #e5e5e5; padding-bottom: 12px; }
+    h2 { margin-top: 2rem; color: #333; }
+    code { background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+    a { color: #2563eb; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; }
+    th { background: #f5f5f5; }
+  </style>
+</head>
+<body>
+  <h1>Vulnerability Disclosure Policy</h1>
+  <p><strong>Last updated:</strong> March 1, 2026</p>
+  <p>
+    Kayston's Forge is a privacy-first, browser-based developer utilities suite.
+    We take security seriously and welcome reports from the security community.
+  </p>
+
+  <h2>Scope</h2>
+  <p>This policy covers the Kayston's Forge web application at
+    <a href="https://kaystons-forge.vercel.app">kaystons-forge.vercel.app</a>
+    and its open-source repository at
+    <a href="https://github.com/Ibuqun/Kaystons-Forge">github.com/Ibuqun/Kaystons-Forge</a>.
+  </p>
+
+  <h2>In Scope</h2>
+  <ul>
+    <li>Cross-site scripting (XSS) in tool previews or output rendering</li>
+    <li>Content Security Policy bypass</li>
+    <li>Client-side data exposure (IndexedDB, localStorage)</li>
+    <li>Dependency vulnerabilities with real-world exploit potential</li>
+    <li>Logic bugs in cryptographic or encoding/decoding tools</li>
+  </ul>
+
+  <h2>Out of Scope</h2>
+  <ul>
+    <li>Denial-of-service (DoS) attacks — all processing is client-side</li>
+    <li>Social engineering attacks</li>
+    <li>Issues requiring physical access to a user's device</li>
+    <li>Vulnerabilities in third-party services (Vercel infrastructure)</li>
+    <li>Self-XSS that cannot affect other users</li>
+  </ul>
+
+  <h2>How to Report</h2>
+  <p>Send reports to: <a href="mailto:security@kaystons.dev">security@kaystons.dev</a></p>
+  <p>Please include:</p>
+  <ul>
+    <li>Description of the vulnerability and its impact</li>
+    <li>Steps to reproduce (proof-of-concept if possible)</li>
+    <li>Affected browser, OS, and version</li>
+    <li>Any suggested mitigations</li>
+  </ul>
+
+  <h2>Response SLA</h2>
+  <table>
+    <tr><th>Severity</th><th>Initial Response</th><th>Fix Target</th></tr>
+    <tr><td>Critical (active exploit)</td><td>24 hours</td><td>48 hours</td></tr>
+    <tr><td>High</td><td>48 hours</td><td>7 days</td></tr>
+    <tr><td>Medium</td><td>5 business days</td><td>30 days</td></tr>
+    <tr><td>Low / Informational</td><td>10 business days</td><td>Next release</td></tr>
+  </table>
+
+  <h2>Safe Harbor</h2>
+  <p>
+    We will not pursue legal action against researchers who:
+    act in good faith, avoid privacy violations and service disruption,
+    do not access or modify user data, and report findings promptly.
+  </p>
+
+  <h2 id="acknowledgments">Acknowledgments</h2>
+  <p>We thank all security researchers who responsibly disclose vulnerabilities to us.</p>
+
+  <hr />
+  <p><small>
+    <a href="/.well-known/security.txt">security.txt</a> |
+    <a href="https://github.com/Ibuqun/Kaystons-Forge">Source code</a>
+  </small></p>
+</body>
+</html>
