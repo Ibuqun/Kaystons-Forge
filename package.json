@@ -50,7 +50,7 @@
     "@types/dompurify": "^3.0.5",
     "@types/html-minifier-terser": "^7.0.2",
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^22.13.10",
+    "@types/node": "^22.19.13",
     "@types/papaparse": "^5.5.2",
     "@types/prismjs": "^1.26.6",
     "@types/qrcode": "^1.5.5",
