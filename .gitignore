@@ -9,3 +9,4 @@ tsconfig.tsbuildinfo
 .env.production.local
 .env.development.local
 .vercel
+.worktrees/
