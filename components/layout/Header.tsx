@@ -9,12 +9,20 @@ import {
   ChevronRightIcon,
   MagnifyingGlassIcon,
   Bars3Icon,
+  SunIcon,
+  MoonIcon,
 } from '@heroicons/react/24/outline';
 
 export function Header({ toolId }: { toolId: string }) {
   const router = useRouter();
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const setPalette = useAppStore((s) => s.setCommandPaletteOpen);
+  const theme = useAppStore((s) => s.settings.theme);
+  const updateSettings = useAppStore((s) => s.updateSettings);
+
+  const toggleTheme = () => {
+    updateSettings({ theme: theme === 'dark' ? 'light' : 'dark' });
+  };
 
   const idx = tools.findIndex((x) => x.id === toolId);
   const current = tools[idx] ?? tools[0];
@@ -63,6 +71,21 @@ export function Header({ toolId }: { toolId: string }) {
       </div>
 
       <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? (
+            <SunIcon className="h-3.5 w-3.5" />
+          ) : (
+            <MoonIcon className="h-3.5 w-3.5" />
+          )}
+        </Button>
+
+        <div className="h-4 w-px" style={{ background: 'var(--border)' }} />
+
         <Button
           variant="subtle"
           size="sm"

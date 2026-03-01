@@ -37,6 +37,81 @@
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* ── Solarized Light Theme ── */
+[data-theme="light"] {
+  --bg-primary: #fdf6e3;
+  --bg-secondary: #f5eedb;
+  --bg-tertiary: #eee8d5;
+  --bg-elevated: #e8e1cd;
+  --border: #d3cbb8;
+  --border-subtle: #e0d8c4;
+  --text-primary: #073642;
+  --text-secondary: #586e75;
+  --text-muted: #93a1a1;
+  --accent: #b58900;
+  --accent-hover: #cb9b00;
+  --accent-glow: rgba(181, 137, 0, 0.15);
+  --accent-subtle: rgba(181, 137, 0, 0.08);
+  --error: #dc322f;
+  --error-bg: rgba(220, 50, 47, 0.08);
+  --warning: #cb4b16;
+  --info: #268bd2;
+  --success: #859900;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] ::selection {
+  background: #b58900;
+  color: #fdf6e3;
+}
+
+/* Light-mode Prism token overrides */
+[data-theme="light"] .token.comment,
+[data-theme="light"] .token.prolog,
+[data-theme="light"] .token.doctype,
+[data-theme="light"] .token.cdata { color: #93a1a1; }
+
+[data-theme="light"] .token.punctuation { color: #586e75; }
+
+[data-theme="light"] .token.property,
+[data-theme="light"] .token.attr-name,
+[data-theme="light"] .token.tag { color: #268bd2; }
+
+[data-theme="light"] .token.string,
+[data-theme="light"] .token.attr-value { color: #2aa198; }
+
+[data-theme="light"] .token.number { color: #d33682; }
+
+[data-theme="light"] .token.boolean,
+[data-theme="light"] .token.null-value,
+[data-theme="light"] .token.constant { color: #cb4b16; }
+
+[data-theme="light"] .token.keyword,
+[data-theme="light"] .token.selector,
+[data-theme="light"] .token.important { color: #859900; }
+
+[data-theme="light"] .token.function { color: #268bd2; }
+
+[data-theme="light"] .token.operator,
+[data-theme="light"] .token.entity { color: #586e75; }
+
+[data-theme="light"] .token.atrule { color: #6c71c4; }
+
+[data-theme="light"] .token.regex { color: #2aa198; }
+
+[data-theme="light"] .token.inserted { color: #859900; }
+[data-theme="light"] .token.deleted { color: #dc322f; }
+
+/* Light scrollbar */
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #d3cbb8;
+}
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #93a1a1;
+}
+
 * {
   box-sizing: border-box;
   -webkit-font-smoothing: antialiased;

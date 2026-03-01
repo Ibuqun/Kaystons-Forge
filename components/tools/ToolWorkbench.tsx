@@ -168,6 +168,13 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
   const [showHistory, setShowHistory] = useState(false);
 
   const { copy, copied } = useClipboard();
+  const [copiedInput, setCopiedInput] = useState(false);
+
+  const copyInput = async () => {
+    await copy(input);
+    setCopiedInput(true);
+    setTimeout(() => setCopiedInput(false), 1500);
+  };
   const { entries, save, clear } = useHistory(toolId);
 
   const actions = useMemo(() => actionConfig[toolId] ?? [{ id: 'default', label: 'Run' }], [toolId]);
@@ -367,7 +374,23 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
           <div className="flex min-h-0 flex-1 flex-col rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-muted)' }}>Input</span>
-              {tool.description && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{tool.description}</span>}
+              <div className="flex items-center gap-2">
+                {tool.description && <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{tool.description}</span>}
+                {input && (
+                  <button
+                    onClick={() => void copyInput()}
+                    className="rounded-md p-1 transition-colors duration-150 hover:bg-[var(--bg-tertiary)]"
+                    aria-label="Copy input"
+                    title="Copy input"
+                  >
+                    {copiedInput ? (
+                      <CheckIcon className="h-3.5 w-3.5" style={{ color: 'var(--success)' }} />
+                    ) : (
+                      <ClipboardDocumentIcon className="h-3.5 w-3.5" style={{ color: 'var(--text-muted)' }} />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
             <textarea
               className={`editor min-h-0 flex-1 ${wrapInput ? '' : 'whitespace-pre'}`}
@@ -407,11 +430,27 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
           <div className="flex min-h-0 flex-1 flex-col rounded-xl border p-3" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-secondary)' }}>
             <div className="mb-2 flex items-center justify-between">
               <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-muted)' }}>Output</span>
-              {output && (
-                <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
-                  {output.length.toLocaleString()} chars
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {output && (
+                  <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                    {output.length.toLocaleString()} chars
+                  </span>
+                )}
+                {output && (
+                  <button
+                    onClick={() => void copy(output)}
+                    className="rounded-md p-1 transition-colors duration-150 hover:bg-[var(--bg-tertiary)]"
+                    aria-label="Copy output"
+                    title="Copy output"
+                  >
+                    {copied ? (
+                      <CheckIcon className="h-3.5 w-3.5" style={{ color: 'var(--success)' }} />
+                    ) : (
+                      <ClipboardDocumentIcon className="h-3.5 w-3.5" style={{ color: 'var(--text-muted)' }} />
+                    )}
+                  </button>
+                )}
+              </div>
             </div>
             {highlightedHtml ? (
               <pre
