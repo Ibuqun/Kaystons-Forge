@@ -139,6 +139,68 @@ const actionConfig: Record<string, Action[]> = {
     { id: 'unique', label: 'Unique' },
     { id: 'count', label: 'Count' },
   ],
+  'string-case': [
+    { id: 'default', label: 'camelCase' },
+    { id: 'pascal', label: 'PascalCase' },
+    { id: 'snake', label: 'snake_case' },
+    { id: 'kebab', label: 'kebab-case' },
+    { id: 'screaming', label: 'SCREAMING_SNAKE' },
+    { id: 'title', label: 'Title Case' },
+  ],
+  'cron-parser': [
+    { id: 'default', label: 'Human Readable' },
+    { id: 'next-runs', label: 'Next 5 Runs' },
+  ],
+  'color-converter': [
+    { id: 'default', label: 'All Formats' },
+    { id: 'to-hex', label: 'To HEX' },
+    { id: 'to-rgb', label: 'To RGB' },
+    { id: 'to-hsl', label: 'To HSL' },
+    { id: 'to-hsv', label: 'To HSV' },
+  ],
+  'php-to-json': [
+    { id: 'default', label: 'From Serialized' },
+    { id: 'from-array', label: 'From Array Syntax' },
+  ],
+  'json-to-php': [
+    { id: 'default', label: 'To Serialized' },
+    { id: 'to-array', label: 'To Array Syntax' },
+  ],
+  'php-serializer': [
+    { id: 'default', label: 'Serialize' },
+  ],
+  'php-unserializer': [
+    { id: 'default', label: 'Unserialize' },
+    { id: 'to-array', label: 'To Array Syntax' },
+  ],
+  'random-string': [
+    { id: 'default', label: 'Alphanumeric' },
+    { id: 'hex', label: 'Hex' },
+    { id: 'base64', label: 'Base64' },
+    { id: 'symbols', label: 'Symbols' },
+    { id: 'passphrase', label: 'Passphrase' },
+  ],
+  'svg-to-css': [
+    { id: 'default', label: 'Base64' },
+    { id: 'url-encoded', label: 'URL-encoded' },
+  ],
+  'curl-to-code': [
+    { id: 'javascript', label: 'JavaScript' },
+    { id: 'python', label: 'Python' },
+    { id: 'php', label: 'PHP' },
+  ],
+  'json-to-code': [
+    { id: 'typescript', label: 'TypeScript' },
+    { id: 'python', label: 'Python' },
+    { id: 'go', label: 'Go' },
+    { id: 'rust', label: 'Rust' },
+  ],
+  'line-sort': [
+    { id: 'default', label: 'Sort A→Z' },
+    { id: 'sort-desc', label: 'Sort Z→A' },
+    { id: 'dedupe', label: 'Dedupe' },
+    { id: 'dedupe-sort', label: 'Dedupe + Sort' },
+  ],
 };
 
 const sampleInput: Record<string, string> = {
@@ -155,6 +217,21 @@ const sampleInput: Record<string, string> = {
   'csv-to-sql': 'id,name,email,active\n1,Alice,alice@example.com,true\n2,Bob,bob@example.com,false\n3,Carol,carol@example.com,true',
   'list-compare': 'apple\nbanana\ncherry\ndate\nfig',
   'text-separator': 'apple, banana, cherry, date, fig, grape',
+  'string-case': 'hello world from kaystons forge',
+  'cron-parser': '0 9 * * 1-5',
+  'color-converter': '#3b82f6',
+  'php-to-json': 'a:2:{s:4:"name";s:5:"Alice";s:3:"age";i:30;}',
+  'json-to-php': '{"name":"Alice","age":30,"active":true}',
+  'php-serializer': '{"name":"Alice","age":30,"active":true}',
+  'php-unserializer': 'a:2:{s:4:"name";s:5:"Alice";s:3:"age";i:30;}',
+  'random-string': '32',
+  'svg-to-css': '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/></svg>',
+  'curl-to-code': "curl -X POST https://api.example.com/users -H \"Authorization: Bearer token123\" -H \"Content-Type: application/json\" -d '{\"name\":\"Alice\",\"email\":\"alice@example.com\"}'",
+  'json-to-code': '{"id":1,"name":"Alice","email":"alice@example.com","active":true,"score":9.5,"tags":["admin","user"]}',
+  'cert-decoder': '-----BEGIN CERTIFICATE-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF\n-----END CERTIFICATE-----',
+  'hex-to-ascii': '48 65 6c 6c 6f 2c 20 57 6f 72 6c 64 21',
+  'ascii-to-hex': 'Hello, World!',
+  'line-sort': 'banana\napple\ncherry\napple\ndate\nbanana\nelderberry',
 };
 
 const sampleSecondInput: Record<string, string> = {
@@ -235,6 +312,10 @@ const toolControls: Record<string, ControlField[]> = {
       { value: 'true', label: 'Yes' },
       { value: 'false', label: 'No' },
     ]},
+  ],
+  'random-string': [
+    { key: 'length', label: 'Length', type: 'number', default: '32', placeholder: '1–4096' },
+    { key: 'count',  label: 'Count',  type: 'number', default: '1',  placeholder: '1–100' },
   ],
 };
 
