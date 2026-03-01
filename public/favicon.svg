@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!-- Warm dark background -->
+  <rect width="32" height="32" rx="7" fill="#1a1510"/>
+  <!-- Forge mark: two leaning slash bars (// motif), gold -->
+  <polygon points="6,25 10.5,25 15,7 10.5,7" fill="#b58900"/>
+  <polygon points="14.5,25 19,25 23.5,7 19,7" fill="#b58900"/>
+  <!-- Subtle inner highlight on bars -->
+  <polygon points="6,25 7.5,25 12,7 10.5,7" fill="#d4a017" opacity="0.35"/>
+  <polygon points="14.5,25 16,25 20.5,7 19,7" fill="#d4a017" opacity="0.35"/>
+</svg>
