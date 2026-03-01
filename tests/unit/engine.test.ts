@@ -306,4 +306,27 @@ describe("tool engine", () => {
     expect(out.output).toContain("requests");
     expect(out.output).toContain("https://api.example.com/data");
   });
+
+  it("json-to-code: generates typescript interfaces", async () => {
+    const out = await processTool(
+      "json-to-code",
+      '{"id":1,"name":"Alice","active":true}',
+      { action: "typescript" },
+    );
+    expect(out.output).toContain("interface");
+    expect(out.output).toContain("id:");
+    expect(out.output).toContain("name:");
+    expect(out.output).toContain("active:");
+  });
+
+  it("json-to-code: generates python dataclass", async () => {
+    const out = await processTool(
+      "json-to-code",
+      '{"id":1,"name":"Alice"}',
+      { action: "python" },
+    );
+    expect(out.output).toContain("@dataclass");
+    expect(out.output).toContain("id:");
+    expect(out.output).toContain("name:");
+  });
 });
