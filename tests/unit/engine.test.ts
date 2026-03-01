@@ -329,4 +329,17 @@ describe("tool engine", () => {
     expect(out.output).toContain("id:");
     expect(out.output).toContain("name:");
   });
+
+  it("cert-decoder: reports invalid input gracefully", async () => {
+    const out = await processTool("cert-decoder", "not a certificate");
+    expect(out.output).toContain("Invalid");
+  });
+
+  it("cert-decoder: accepts PEM header", async () => {
+    const pem = `-----BEGIN CERTIFICATE-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF
+-----END CERTIFICATE-----`;
+    const out = await processTool("cert-decoder", pem);
+    expect(out.output).not.toBe("Tool not implemented.");
+  });
 });
