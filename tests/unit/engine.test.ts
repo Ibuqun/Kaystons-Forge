@@ -342,4 +342,82 @@ MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2a2rwplBQLzHPZe5TNJF
     const out = await processTool("cert-decoder", pem);
     expect(out.output).not.toBe("Tool not implemented.");
   });
+
+  it("string-case: converts to snake_case", async () => {
+    const out = await processTool("string-case", "helloWorldFromForge", { action: "snake" });
+    expect(out.output).toBe("hello_world_from_forge");
+  });
+
+  it("string-case: converts to kebab-case", async () => {
+    const out = await processTool("string-case", "Hello World", { action: "kebab" });
+    expect(out.output).toBe("hello-world");
+  });
+
+  it("cron-parser: returns human readable", async () => {
+    const out = await processTool("cron-parser", "0 9 * * 1-5");
+    expect(out.output).toContain("9:00 AM");
+    expect(out.output.toLowerCase()).toContain("monday");
+  });
+
+  it("color-converter: converts hex to all formats", async () => {
+    const out = await processTool("color-converter", "#ff0000");
+    expect(out.output).toContain("rgb(255, 0, 0)");
+    expect(out.output).toContain("hsl(0,");
+  });
+
+  it("color-converter: converts rgb to hex", async () => {
+    const out = await processTool("color-converter", "rgb(255, 0, 0)", { action: "to-hex" });
+    expect(out.output.toLowerCase()).toContain("ff0000");
+  });
+
+  it("random-string: generates alphanumeric string", async () => {
+    const out = await processTool("random-string", "16", { secondInput: "length=16\ncount=1" });
+    expect(out.output).toMatch(/^[A-Za-z0-9]+$/);
+    expect(out.output).toHaveLength(16);
+  });
+
+  it("svg-to-css: generates base64 background-image", async () => {
+    const out = await processTool("svg-to-css", '<svg xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/></svg>');
+    expect(out.output).toContain("background-image");
+    expect(out.output).toContain("base64");
+  });
+
+  it("hex-to-ascii: converts hex bytes to text", async () => {
+    const out = await processTool("hex-to-ascii", "48 65 6c 6c 6f");
+    expect(out.output).toBe("Hello");
+  });
+
+  it("ascii-to-hex: converts text to hex bytes", async () => {
+    const out = await processTool("ascii-to-hex", "Hello");
+    expect(out.output).toBe("48 65 6c 6c 6f");
+  });
+
+  it("line-sort: sorts ascending", async () => {
+    const out = await processTool("line-sort", "banana\napple\ncherry");
+    expect(out.output).toBe("apple\nbanana\ncherry");
+  });
+
+  it("line-sort: deduplicates lines", async () => {
+    const out = await processTool("line-sort", "apple\nbanana\napple", { action: "dedupe" });
+    const lines = out.output.split("\n");
+    expect(lines.filter(l => l.toLowerCase() === "apple")).toHaveLength(1);
+  });
+
+  it("curl-to-code: converts to php", async () => {
+    const out = await processTool("curl-to-code", "curl https://example.com/api", { action: "php" });
+    expect(out.output).toContain("curl_init");
+    expect(out.output).toContain("example.com");
+  });
+
+  it("json-to-code: generates go struct", async () => {
+    const out = await processTool("json-to-code", '{"id":1,"name":"Alice"}', { action: "go" });
+    expect(out.output).toContain("struct");
+    expect(out.output).toContain("Id");
+    expect(out.output).toContain("Name");
+  });
+
+  it("cert-decoder: invalid cert returns error message", async () => {
+    const out = await processTool("cert-decoder", "invalid data");
+    expect(out.output).toContain("Invalid");
+  });
 });
