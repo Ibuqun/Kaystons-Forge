@@ -121,27 +121,60 @@ export function parseConfig(raw: string): Partial<CsvToSqlConfig> {
 }
 
 function parseCsv(input: string): string[][] {
+  // Character-by-character parser that correctly handles quoted multiline fields
   const rows: string[][] = [];
-  const lines = input.split(/\r?\n/).filter(l => l.trim());
-  for (const line of lines) {
-    const cells: string[] = [];
-    let current = '';
-    let inQuote = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (inQuote) {
-        if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
-        else if (ch === '"') inQuote = false;
-        else current += ch;
+  let pos = 0;
+  const n = input.length;
+
+  while (pos < n) {
+    // Skip blank lines between rows
+    while (pos < n && (input[pos] === '\r' || input[pos] === '\n')) pos++;
+    if (pos >= n) break;
+
+    const row: string[] = [];
+    while (pos < n) {
+      let cell = '';
+
+      if (input[pos] === '"') {
+        // Quoted field: may span multiple lines
+        pos++; // skip opening "
+        while (pos < n) {
+          if (input[pos] === '"') {
+            if (pos + 1 < n && input[pos + 1] === '"') {
+              cell += '"'; pos += 2; // escaped ""
+            } else {
+              pos++; // closing "
+              break;
+            }
+          } else {
+            cell += input[pos++];
+          }
+        }
+        // Skip optional whitespace after closing quote before delimiter
+        while (pos < n && input[pos] === ' ') pos++;
       } else {
-        if (ch === '"') inQuote = true;
-        else if (ch === ',' || ch === '\t') { cells.push(current); current = ''; }
-        else current += ch;
+        // Unquoted field: read until comma, tab, or newline
+        while (pos < n && input[pos] !== ',' && input[pos] !== '\t' && input[pos] !== '\n' && input[pos] !== '\r') {
+          cell += input[pos++];
+        }
+        cell = cell.trim();
+      }
+
+      row.push(cell);
+
+      if (pos < n && (input[pos] === ',' || input[pos] === '\t')) {
+        pos++; // advance past delimiter, get next cell
+      } else {
+        // End of row
+        if (pos < n && input[pos] === '\r') pos++;
+        if (pos < n && input[pos] === '\n') pos++;
+        break;
       }
     }
-    cells.push(current);
-    rows.push(cells);
+
+    if (row.some((c) => c !== '')) rows.push(row);
   }
+
   return rows;
 }
 

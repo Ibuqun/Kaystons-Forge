@@ -10,6 +10,17 @@ function toSnakeCase(s: string): string {
   return s.replace(/([A-Z])/g, '_$1').toLowerCase().replace(/^_/, '').replace(/[^a-z0-9_]/g, '_');
 }
 
+/** Returns true if s is a valid JS/TS identifier (no quoting needed in interfaces) */
+function isValidIdentifier(s: string): boolean {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(s);
+}
+
+/** Sanitize a key to a valid Python identifier */
+function toPythonIdentifier(s: string): string {
+  const snake = toSnakeCase(s).replace(/^(\d)/, '_$1') || '_field';
+  return snake;
+}
+
 // ─── TypeScript ───────────────────────────────────────────────────────────────
 
 function tsInferType(value: JsonValue, name: string, out: Map<string, string>): string {
@@ -24,7 +35,11 @@ function tsInferType(value: JsonValue, name: string, out: Map<string, string>): 
   // object
   const ifaceName = toPascalCase(name) || 'Root';
   const fields = Object.entries(value as Record<string, JsonValue>)
-    .map(([k, v]) => `  ${k}: ${tsInferType(v, k, out)};`)
+    .map(([k, v]) => {
+      // Quote keys that are not valid identifiers (e.g. "first-name")
+      const fieldName = isValidIdentifier(k) ? k : JSON.stringify(k);
+      return `  ${fieldName}: ${tsInferType(v, k, out)};`;
+    })
     .join('\n');
   out.set(ifaceName, `interface ${ifaceName} {\n${fields}\n}`);
   return ifaceName;
@@ -49,7 +64,12 @@ function pyInferType(value: JsonValue, name: string, out: Map<string, string>): 
   }
   const className = toPascalCase(name) || 'Root';
   const fields = Object.entries(value as Record<string, JsonValue>)
-    .map(([k, v]) => `    ${k}: ${pyInferType(v, k, out)}`)
+    .map(([k, v]) => {
+      const fieldName = toPythonIdentifier(k);
+      // Add comment if the field name was sanitized from the original key
+      const comment = fieldName !== k ? `  # originally "${k}"` : '';
+      return `    ${fieldName}: ${pyInferType(v, k, out)}${comment}`;
+    })
     .join('\n');
   out.set(className, `@dataclass\nclass ${className}:\n${fields}`);
   return className;

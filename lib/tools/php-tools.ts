@@ -87,7 +87,11 @@ export function phpUnserialize(input: string): PhpValue {
 
   // 'N;' is the only type that doesn't follow 'type:...' format
   if (text === 'N;') return null;
-  return parse();
+  const result = parse();
+  if (pos !== text.length) {
+    throw new Error(`Trailing garbage at position ${pos}: "${text.slice(pos, pos + 20)}"`);
+  }
+  return result;
 }
 
 // ─── Serialize ───────────────────────────────────────────────────────────────

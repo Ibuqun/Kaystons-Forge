@@ -39,7 +39,7 @@ function parseCurl(input: string): CurlParsed {
   let body: string | null = null;
   let auth: string | null = null;
 
-  let j = 1; // skip 'curl'
+  let j = tokens[0]?.toLowerCase() === 'curl' ? 1 : 0; // skip 'curl' token if present
   while (j < tokens.length) {
     const tok = tokens[j];
     if (tok === '-X' || tok === '--request') {

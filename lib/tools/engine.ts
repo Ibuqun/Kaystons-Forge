@@ -18,6 +18,7 @@ import { phpUnserialize, phpSerialize, phpArraySyntax, parsePhpArraySyntax, type
 import { curlToJs, curlToPython, curlToPhp } from './curl-to-code';
 import { jsonToTypeScript, jsonToPython, jsonToGo, jsonToRust, type JsonValue } from './json-to-code';
 import { decodeCertificate } from './cert-decoder';
+import { loadAll as yamlLoadAll } from 'js-yaml';
 
 export interface ProcessOptions {
   action?: string;
@@ -41,16 +42,20 @@ function parseJsonLoose(raw: string) {
   try {
     return JSON.parse(text);
   } catch {
-    // Step 1: Quote unquoted keys
-    let normalized = text.replace(/([{,]\s*)([A-Za-z_$][\w$-]*)(\s*:)/g, '$1"$2"$3');
-    // Step 2: Replace single-quoted string values (not apostrophes inside double-quoted strings)
-    normalized = normalized.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"');
-    // Step 3: Remove trailing commas
-    normalized = normalized.replace(/,\s*([}\]])/g, '$1');
+    // Safe normalization pipeline — no eval or new Function
+    let s = text;
+    // 1. Quote unquoted identifier keys (e.g. {a: 1} → {"a": 1})
+    //    Negative lookahead (?!\/) prevents matching URL schemes like http://
+    s = s.replace(/([{,]\s*)([A-Za-z_$][\w$-]*)(\s*:(?!\/))/g, '$1"$2"$3');
+    // 2. Normalize single-quoted strings to double-quoted (handles \' escapes)
+    s = s.replace(/'((?:[^'\\]|\\.)*)'/g, (_, inner) =>
+      '"' + inner.replace(/"/g, '\\"').replace(/\\'/g, "'") + '"'
+    );
+    // 3. Remove trailing commas before } or ]
+    s = s.replace(/,(\s*[}\]])/g, '$1');
     try {
-      return JSON.parse(normalized);
+      return JSON.parse(s);
     } catch {
-      if (!text.startsWith('{') && !text.startsWith('[')) return text;
       throw new Error('Invalid JSON. Ensure keys and string values are quoted correctly.');
     }
   }
@@ -66,7 +71,10 @@ function detectTimestamp(raw: string) {
   if (!cleaned) return null;
   const n = Number(cleaned);
   if (Number.isNaN(n)) return null;
-  return cleaned.length > 10 ? n : n * 1000;
+
+  // Use absolute value to determine if it is seconds or milliseconds
+  // 10000000000 (10 digits) = ~2286
+  return Math.abs(n).toString().length > 10 ? n : n * 1000;
 }
 
 function relativeTime(targetMs: number) {
@@ -179,7 +187,7 @@ function escapeHtmlAttr(value: string) {
 function beautifyHtml(html: string): string {
   const result: string[] = [];
   let indent = 0;
-  const voidElements = new Set(['area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr']);
+  const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'track', 'wbr']);
 
   // Split between all adjacent tags (with or without whitespace)
   const tokens = html.replace(/>\s*</g, '>\n<').split('\n');
@@ -437,7 +445,8 @@ export async function processTool(toolId: string, input: string, options: Proces
       }
 
       case 'url-encode-decode': {
-        if (action === 'decode') return { output: decodeURIComponent(input.replaceAll('+', ' ')) };
+        if (action === 'decode') return { output: decodeURIComponent(input) };
+        if (action === 'form-decode') return { output: decodeURIComponent(input.replaceAll('+', ' ')) };
         if (action === 'component') return { output: encodeURIComponent(input) };
         if (action === 'form') return { output: encodeURIComponent(input).replaceAll('%20', '+') };
         return { output: encodeURI(input) };
@@ -474,8 +483,11 @@ export async function processTool(toolId: string, input: string, options: Proces
         };
       }
 
-      case 'yaml-to-json':
-        return { output: stringify(yamlLoad(input), true) };
+      case 'yaml-to-json': {
+        const docs = yamlLoadAll(input);
+        if (docs.length === 1) return { output: stringify(docs[0], true) };
+        return { output: stringify(docs, true) };
+      }
 
       case 'json-to-yaml':
         return { output: yamlDump(parseJsonLoose(input), { indent: 2, lineWidth: 120 }) };
@@ -569,6 +581,10 @@ export async function processTool(toolId: string, input: string, options: Proces
       case 'json-to-csv': {
         const parsed = parseJsonLoose(input);
         if (!Array.isArray(parsed)) return { output: 'Input must be a JSON array of objects.' };
+        if (parsed.length === 0) return { output: '' };
+        if (parsed.some((item) => item === null || typeof item !== 'object' || Array.isArray(item))) {
+          return { output: 'Each item in the array must be a plain object (not a primitive or nested array).' };
+        }
         const rows = parsed.map((item) => flattenRecord(item as Record<string, unknown>));
         return { output: csvUnparse(rows) };
       }
@@ -748,8 +764,8 @@ export async function processTool(toolId: string, input: string, options: Proces
       case 'json-to-code': {
         const val = parseJsonLoose(input);
         if (action === 'python') return { output: jsonToPython(val as JsonValue) };
-        if (action === 'go')     return { output: jsonToGo(val as JsonValue) };
-        if (action === 'rust')   return { output: jsonToRust(val as JsonValue) };
+        if (action === 'go') return { output: jsonToGo(val as JsonValue) };
+        if (action === 'rust') return { output: jsonToRust(val as JsonValue) };
         return { output: jsonToTypeScript(val as JsonValue) };
       }
 
@@ -767,51 +783,58 @@ export async function processTool(toolId: string, input: string, options: Proces
         if (!words.length) return { output: '' };
         switch (action) {
           case 'pascal': return { output: words.map((w) => w[0].toUpperCase() + w.slice(1)).join('') };
-          case 'snake':  return { output: words.join('_') };
-          case 'kebab':  return { output: words.join('-') };
+          case 'snake': return { output: words.join('_') };
+          case 'kebab': return { output: words.join('-') };
           case 'screaming': return { output: words.join('_').toUpperCase() };
-          case 'title':  return { output: words.map((w) => w[0].toUpperCase() + w.slice(1)).join(' ') };
-          default:       return { output: words[0] + words.slice(1).map((w) => w[0].toUpperCase() + w.slice(1)).join('') };
+          case 'title': return { output: words.map((w) => w[0].toUpperCase() + w.slice(1)).join(' ') };
+          default: return { output: words[0] + words.slice(1).map((w) => w[0].toUpperCase() + w.slice(1)).join('') };
         }
       }
 
       case 'color-converter': {
         const raw = input.trim();
-        let r = 0, g = 0, b = 0;
+        let r = 0, g = 0, b = 0, a = 1;
         const hexMatch = raw.match(/^#?([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i);
         if (hexMatch) {
           const h = hexMatch[1];
           if (h.length === 3 || h.length === 4) {
             r = parseInt(h[0] + h[0], 16); g = parseInt(h[1] + h[1], 16); b = parseInt(h[2] + h[2], 16);
+            if (h.length === 4) a = parseInt(h[3] + h[3], 16) / 255;
           } else {
             r = parseInt(h.slice(0, 2), 16); g = parseInt(h.slice(2, 4), 16); b = parseInt(h.slice(4, 6), 16);
+            if (h.length === 8) a = parseInt(h.slice(6, 8), 16) / 255;
           }
         } else {
-          const rgbMatch = raw.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+          const rgbMatch = raw.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/i);
           if (rgbMatch) {
             r = parseInt(rgbMatch[1]); g = parseInt(rgbMatch[2]); b = parseInt(rgbMatch[3]);
+            if (rgbMatch[4] !== undefined) a = parseFloat(rgbMatch[4]);
           } else {
-            const hslMatch = raw.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%?\s*,\s*([\d.]+)%?\s*\)/i);
-            if (!hslMatch) return { output: 'Invalid color. Use #hex, rgb(r,g,b), or hsl(h,s%,l%).' };
+            const hslMatch = raw.match(/hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%?\s*,\s*([\d.]+)%?(?:\s*,\s*([\d.]+))?\s*\)/i);
+            if (!hslMatch) return { output: 'Invalid color. Use #hex, rgb(r,g,b), rgba(r,g,b,a) or hsl(h,s%,l%).' };
             const hDeg = parseFloat(hslMatch[1]) / 360;
             const s = parseFloat(hslMatch[2]) / 100;
             const l = parseFloat(hslMatch[3]) / 100;
+            if (hslMatch[4] !== undefined) a = parseFloat(hslMatch[4]);
+
             const hue2rgb = (p: number, q: number, t: number) => {
               if (t < 0) t += 1; if (t > 1) t -= 1;
-              if (t < 1/6) return p + (q - p) * 6 * t;
-              if (t < 1/2) return q;
-              if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+              if (t < 1 / 6) return p + (q - p) * 6 * t;
+              if (t < 1 / 2) return q;
+              if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
               return p;
             };
             const q2 = l < 0.5 ? l * (1 + s) : l + s - l * s;
             const p2 = 2 * l - q2;
-            r = Math.round(hue2rgb(p2, q2, hDeg + 1/3) * 255);
+            r = Math.round(hue2rgb(p2, q2, hDeg + 1 / 3) * 255);
             g = Math.round(hue2rgb(p2, q2, hDeg) * 255);
-            b = Math.round(hue2rgb(p2, q2, hDeg - 1/3) * 255);
+            b = Math.round(hue2rgb(p2, q2, hDeg - 1 / 3) * 255);
           }
         }
         r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
-        const r1 = r/255, g1 = g/255, b1 = b/255;
+        a = Math.max(0, Math.min(1, a));
+
+        const r1 = r / 255, g1 = g / 255, b1 = b / 255;
         const max = Math.max(r1, g1, b1), min = Math.min(r1, g1, b1), d = max - min;
         const l2 = (max + min) / 2;
         const s2 = d === 0 ? 0 : d / (l2 > 0.5 ? 2 - max - min : max + min);
@@ -826,18 +849,23 @@ export async function processTool(toolId: string, input: string, options: Proces
         const sv = max === 0 ? 0 : d / max;
         const toHex = (n: number) => n.toString(16).padStart(2, '0');
         const hex = `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        const hexA = a < 1 ? `#${toHex(r)}${toHex(g)}${toHex(b)}${toHex(Math.round(a * 255))}` : hex;
+
         const hDeg2 = Math.round(hue * 360);
-        if (action === 'to-rgb') return { output: `rgb(${r}, ${g}, ${b})` };
-        if (action === 'to-hsl') return { output: `hsl(${hDeg2}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 100)}%)` };
-        if (action === 'to-hsv') return { output: `hsv(${hDeg2}, ${Math.round(sv * 100)}%, ${Math.round(max * 100)}%)` };
+
+        if (action === 'to-hex') return { output: hexA };
+        if (action === 'to-rgb') return { output: a < 1 ? `rgba(${r}, ${g}, ${b}, ${a})` : `rgb(${r}, ${g}, ${b})` };
+        if (action === 'to-hsl') return { output: a < 1 ? `hsla(${hDeg2}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 100)}%, ${a})` : `hsl(${hDeg2}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 100)}%)` };
+        if (action === 'to-hsv') return { output: a < 1 ? `hsva(${hDeg2}, ${Math.round(sv * 100)}%, ${Math.round(max * 100)}%, ${a})` : `hsv(${hDeg2}, ${Math.round(sv * 100)}%, ${Math.round(max * 100)}%)` };
+
         return {
           output: [
-            `HEX:  ${hex}`,
-            `RGB:  rgb(${r}, ${g}, ${b})`,
-            `HSL:  hsl(${hDeg2}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 100)}%)`,
-            `HSV:  hsv(${hDeg2}, ${Math.round(sv * 100)}%, ${Math.round(max * 100)}%)`,
+            `HEX:  ${hexA}`,
+            `RGB:  ${a < 1 ? `rgba(${r}, ${g}, ${b}, ${a})` : `rgb(${r}, ${g}, ${b})`}`,
+            `HSL:  ${a < 1 ? `hsla(${hDeg2}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 100)}%, ${a})` : `hsl(${hDeg2}, ${Math.round(s2 * 100)}%, ${Math.round(l2 * 100)}%)`}`,
+            `HSV:  ${a < 1 ? `hsva(${hDeg2}, ${Math.round(sv * 100)}%, ${Math.round(max * 100)}%, ${a})` : `hsv(${hDeg2}, ${Math.round(sv * 100)}%, ${Math.round(max * 100)}%)`}`,
             ``,
-            `--color: ${hex};`,
+            `--color: ${hexA};`,
             `--color-rgb: ${r}, ${g}, ${b};`,
           ].join('\n'),
         };
@@ -849,14 +877,14 @@ export async function processTool(toolId: string, input: string, options: Proces
           const eq = line.indexOf('='); if (eq > 0) ctrl[line.slice(0, eq).trim()] = line.slice(eq + 1).trim();
         }
         const length = Math.max(1, Math.min(4096, parseInt(ctrl.length || '32')));
-        const count  = Math.max(1, Math.min(100, parseInt(ctrl.count || '1')));
+        const count = Math.max(1, Math.min(100, parseInt(ctrl.count || '1')));
         const charsets: Record<string, string> = {
-          default:  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
-          hex:      '0123456789abcdef',
-          base64:   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
-          symbols:  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?',
+          default: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+          hex: '0123456789abcdef',
+          base64: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+          symbols: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()-_=+[]{}|;:,.<>?',
         };
-        const words = ['correct','horse','battery','staple','apple','table','river','cloud','stone','forest','bridge','ocean','light','storm','bread','chair','flame','sword','tower','dream','spark','amber','chess','drift','ember','frost','glide','haven','ivory','jewel'];
+        const words = ['correct', 'horse', 'battery', 'staple', 'apple', 'table', 'river', 'cloud', 'stone', 'forest', 'bridge', 'ocean', 'light', 'storm', 'bread', 'chair', 'flame', 'sword', 'tower', 'dream', 'spark', 'amber', 'chess', 'drift', 'ember', 'frost', 'glide', 'haven', 'ivory', 'jewel'];
         const results: string[] = [];
         for (let i = 0; i < count; i++) {
           if (action === 'passphrase') {
@@ -874,7 +902,10 @@ export async function processTool(toolId: string, input: string, options: Proces
 
       case 'svg-to-css': {
         const svg = input.trim();
-        if (!svg.startsWith('<svg') && !svg.startsWith('<?xml')) return { output: 'Input must be an SVG element starting with <svg.' };
+        const hasSvgTag = svg.includes('<svg');
+        if (!svg.startsWith('<svg') && !(svg.startsWith('<?xml') && hasSvgTag)) {
+          return { output: 'Input must be an SVG element. Expected <svg ...> or <?xml ...> with a <svg> root element.' };
+        }
         if (action === 'url-encoded') {
           const encoded = encodeURIComponent(svg).replace(/%20/g, ' ').replace(/%3D/g, '=').replace(/%3A/g, ':').replace(/%2F/g, '/');
           return { output: `.icon {\n  background-image: url("data:image/svg+xml,${encoded}");\n  background-repeat: no-repeat;\n  background-size: contain;\n}` };
@@ -885,32 +916,35 @@ export async function processTool(toolId: string, input: string, options: Proces
 
       case 'hex-to-ascii': {
         const cleaned = input.trim().replace(/0x/gi, '').replace(/[,\s]+/g, ' ');
-        const bytes = cleaned.split(' ').filter(Boolean);
+        const tokens = cleaned.split(' ').filter(Boolean);
         try {
-          const chars = bytes.map((byte) => {
-            const code = parseInt(byte, 16);
-            if (isNaN(code) || code < 0) throw new Error(`Invalid hex byte: ${byte}`);
-            return String.fromCharCode(code);
+          const byteVals = tokens.map((t) => {
+            // Normalize: pad single-char tokens, reject anything not exactly 2 hex digits
+            const normalized = t.length === 1 ? '0' + t : t;
+            if (!/^[0-9a-fA-F]{2}$/.test(normalized)) throw new Error(`Invalid hex byte: "${t}"`);
+            return parseInt(normalized, 16);
           });
-          return { output: chars.join(''), meta: `${bytes.length} bytes` };
+          return { output: new TextDecoder().decode(new Uint8Array(byteVals)), meta: `${byteVals.length} bytes` };
         } catch (e) {
           return { output: e instanceof Error ? e.message : 'Invalid hex input' };
         }
       }
 
       case 'ascii-to-hex': {
-        const bytes = [...input].map((c) => c.charCodeAt(0).toString(16).padStart(2, '0'));
-        return { output: bytes.join(' '), meta: `${bytes.length} bytes` };
+        // Use TextEncoder to get true UTF-8 bytes, not UTF-16 code units
+        const bytes = new TextEncoder().encode(input);
+        return { output: Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join(' '), meta: `${bytes.length} bytes (UTF-8)` };
       }
 
       case 'line-sort': {
         const lines = input.split('\n');
         let result: string[];
         switch (action) {
-          case 'sort-desc':   result = [...lines].sort((a, b) => b.localeCompare(a)); break;
-          case 'dedupe':      result = [...new Map(lines.map((l) => [l.toLowerCase(), l])).values()]; break;
-          case 'dedupe-sort': result = [...new Set(lines.map((l) => l.trim()))].filter(Boolean).sort((a, b) => a.localeCompare(b)); break;
-          default:            result = [...lines].sort((a, b) => a.localeCompare(b));
+          case 'sort-desc': result = [...lines].sort((a, b) => b.localeCompare(a)); break;
+          // Both dedupe modes: trim + lowercase key for comparison, preserve first-seen trimmed original
+          case 'dedupe': result = [...new Map(lines.map((l) => [l.trim().toLowerCase(), l.trim()])).values()].filter(Boolean); break;
+          case 'dedupe-sort': result = [...new Map(lines.map((l) => [l.trim().toLowerCase(), l.trim()])).values()].filter(Boolean).sort((a, b) => a.localeCompare(b)); break;
+          default: result = [...lines].sort((a, b) => a.localeCompare(b));
         }
         const dupes = lines.length - new Set(lines.map((l) => l.toLowerCase())).size;
         return { output: result.join('\n'), meta: `${result.length} lines | ${dupes} duplicate(s)` };

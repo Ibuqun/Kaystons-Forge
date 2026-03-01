@@ -69,16 +69,27 @@ export function compareLists(listA: string[], listB: string[], opts: CompareOpti
   const normA = listA.map(i => normalize(i, opts.caseSensitive)).filter(Boolean);
   const normB = listB.map(i => normalize(i, opts.caseSensitive)).filter(Boolean);
 
+  // Maps from normalized → first-seen original (trimmed) for case-preserving output
+  const origA = new Map<string, string>();
+  const origB = new Map<string, string>();
+  listA.forEach(i => { const n = normalize(i, opts.caseSensitive); if (n && !origA.has(n)) origA.set(n, i.trim()); });
+  listB.forEach(i => { const n = normalize(i, opts.caseSensitive); if (n && !origB.has(n)) origB.set(n, i.trim()); });
+
   const setA = new Set(normA);
   const setB = new Set(normB);
 
   // Fuzzy matching
   const fuzzyPairs = new Map<string, string>();
-  if (opts.fuzzyMatch && setA.size * setB.size <= 2_500_000) {
+  // Lower the threshold significantly to prevent UI thread lockup. 25k is much safer.
+  if (opts.fuzzyMatch && setA.size * setB.size <= 25_000) {
     const arrB = [...setB];
     for (const a of setA) {
       if (setB.has(a)) continue;
+      // Do not attempt fuzzy matching on absurdly long strings
+      if (a.length > 500) continue;
+
       for (const b of arrB) {
+        if (b.length > 500) continue;
         if (Math.abs(b.length - a.length) > opts.fuzzyDistance + 1) continue;
         if (levenshtein(a, b) <= opts.fuzzyDistance) { fuzzyPairs.set(a, b); break; }
       }
@@ -90,13 +101,14 @@ export function compareLists(listA: string[], listB: string[], opts: CompareOpti
   const usedB = new Set<string>();
 
   for (const a of setA) {
-    if (setB.has(a)) { intersection.push(a); usedB.add(a); }
-    else if (fuzzyPairs.has(a)) { intersection.push(a); usedB.add(fuzzyPairs.get(a)!); }
-    else onlyA.push(a);
+    const original = origA.get(a) ?? a;
+    if (setB.has(a)) { intersection.push(original); usedB.add(a); }
+    else if (fuzzyPairs.has(a)) { intersection.push(original); usedB.add(fuzzyPairs.get(a)!); }
+    else onlyA.push(original);
   }
 
-  const onlyB = [...setB].filter(b => !usedB.has(b) && !setA.has(b));
-  const union = [...new Set([...setA, ...setB])].sort((a, b) => a.localeCompare(b));
+  const onlyB = [...setB].filter(b => !usedB.has(b) && !setA.has(b)).map(b => origB.get(b) ?? b);
+  const union = [...new Set([...setA, ...setB])].sort((a, b) => a.localeCompare(b)).map(n => origA.get(n) ?? origB.get(n) ?? n);
 
   const unionSize = union.length;
   const intSize = intersection.length;
