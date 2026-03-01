@@ -939,14 +939,28 @@ export async function processTool(toolId: string, input: string, options: Proces
       case 'line-sort': {
         const lines = input.split('\n');
         let result: string[];
+
+        // Build a first-seen Map iteratively — Map(array) keeps last-seen, not first-seen
+        const buildFirstSeenMap = (): Map<string, string> => {
+          const seen = new Map<string, string>();
+          for (const l of lines) {
+            const key = l.trim().toLowerCase();
+            if (key && !seen.has(key)) seen.set(key, l.trim());
+          }
+          return seen;
+        };
+
         switch (action) {
           case 'sort-desc': result = [...lines].sort((a, b) => b.localeCompare(a)); break;
-          // Both dedupe modes: trim + lowercase key for comparison, preserve first-seen trimmed original
-          case 'dedupe': result = [...new Map(lines.map((l) => [l.trim().toLowerCase(), l.trim()])).values()].filter(Boolean); break;
-          case 'dedupe-sort': result = [...new Map(lines.map((l) => [l.trim().toLowerCase(), l.trim()])).values()].filter(Boolean).sort((a, b) => a.localeCompare(b)); break;
+          case 'dedupe': result = [...buildFirstSeenMap().values()]; break;
+          case 'dedupe-sort': result = [...buildFirstSeenMap().values()].sort((a, b) => a.localeCompare(b)); break;
           default: result = [...lines].sort((a, b) => a.localeCompare(b));
         }
-        const dupes = lines.length - new Set(lines.map((l) => l.toLowerCase())).size;
+
+        // Stats use same normalization (trim + lowercase) so they match dedupe output
+        const nonEmpty = lines.filter((l) => l.trim()).length;
+        const uniqueCount = new Set(lines.map((l) => l.trim().toLowerCase()).filter(Boolean)).size;
+        const dupes = nonEmpty - uniqueCount;
         return { output: result.join('\n'), meta: `${result.length} lines | ${dupes} duplicate(s)` };
       }
 
