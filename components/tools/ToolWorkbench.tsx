@@ -1,8 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import jsQR from 'jsqr';
-import QRCode from 'qrcode';
 import { useClipboard } from '@/hooks/useClipboard';
 import { useHistory } from '@/hooks/useHistory';
 import { toolMap } from '@/lib/tools/registry';
@@ -17,14 +15,6 @@ import {
   XMarkIcon,
   CheckIcon,
 } from '@heroicons/react/24/outline';
-import Prism from 'prismjs';
-import 'prismjs/components/prism-json';
-import 'prismjs/components/prism-yaml';
-import 'prismjs/components/prism-css';
-import 'prismjs/components/prism-javascript';
-import 'prismjs/components/prism-jsx';
-import 'prismjs/components/prism-markup';
-import 'prismjs/components/prism-sql';
 
 type Action = { id: string; label: string };
 
@@ -251,71 +241,89 @@ type ControlField = {
 
 const toolControls: Record<string, ControlField[]> = {
   'list-splitter': [
-    { key: 'mode', label: 'Split mode', type: 'select', default: 'items_per_group', options: [
-      { value: 'items_per_group', label: 'Items per batch' },
-      { value: 'max_chars_per_group', label: 'Max chars per batch' },
-      { value: 'target_group_count', label: 'Target batch count' },
-    ]},
+    {
+      key: 'mode', label: 'Split mode', type: 'select', default: 'items_per_group', options: [
+        { value: 'items_per_group', label: 'Items per batch' },
+        { value: 'max_chars_per_group', label: 'Max chars per batch' },
+        { value: 'target_group_count', label: 'Target batch count' },
+      ]
+    },
     { key: 'value', label: 'Value', type: 'number', default: '5', placeholder: 'e.g. 5' },
-    { key: 'delimiter', label: 'Delimiter', type: 'select', default: 'auto', options: [
-      { value: 'auto', label: 'Auto-detect' },
-      { value: 'newline', label: 'Newline' },
-      { value: 'comma', label: 'Comma' },
-      { value: 'tab', label: 'Tab' },
-    ]},
-    { key: 'dedupe', label: 'Dedup', type: 'select', default: 'none', options: [
-      { value: 'none', label: 'None' },
-      { value: 'case_sensitive', label: 'Case-sensitive' },
-      { value: 'case_insensitive', label: 'Case-insensitive' },
-    ]},
+    {
+      key: 'delimiter', label: 'Delimiter', type: 'select', default: 'auto', options: [
+        { value: 'auto', label: 'Auto-detect' },
+        { value: 'newline', label: 'Newline' },
+        { value: 'comma', label: 'Comma' },
+        { value: 'tab', label: 'Tab' },
+      ]
+    },
+    {
+      key: 'dedupe', label: 'Dedup', type: 'select', default: 'none', options: [
+        { value: 'none', label: 'None' },
+        { value: 'case_sensitive', label: 'Case-sensitive' },
+        { value: 'case_insensitive', label: 'Case-insensitive' },
+      ]
+    },
   ],
   'csv-to-sql': [
     { key: 'table', label: 'Table', type: 'text', default: 'my_table', placeholder: 'Table name' },
     { key: 'schema', label: 'Schema', type: 'text', default: '', placeholder: 'Schema (optional)' },
     { key: 'batch', label: 'Batch size', type: 'number', default: '250', placeholder: '250' },
-    { key: 'header', label: 'Has header', type: 'select', default: 'true', options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' },
-    ]},
-    { key: 'quote_identifiers', label: 'Quote IDs', type: 'select', default: 'false', options: [
-      { value: 'false', label: 'No' },
-      { value: 'true', label: 'Yes' },
-    ]},
+    {
+      key: 'header', label: 'Has header', type: 'select', default: 'true', options: [
+        { value: 'true', label: 'Yes' },
+        { value: 'false', label: 'No' },
+      ]
+    },
+    {
+      key: 'quote_identifiers', label: 'Quote IDs', type: 'select', default: 'false', options: [
+        { value: 'false', label: 'No' },
+        { value: 'true', label: 'Yes' },
+      ]
+    },
   ],
   'text-separator': [
-    { key: 'from_sep', label: 'From', type: 'select', default: 'newline', options: [
-      { value: 'newline', label: 'Newline' },
-      { value: 'comma', label: 'Comma' },
-      { value: 'semicolon', label: 'Semicolon' },
-      { value: 'tab', label: 'Tab' },
-      { value: 'space', label: 'Space' },
-      { value: 'pipe', label: 'Pipe |' },
-      { value: 'custom', label: 'Custom' },
-    ]},
-    { key: 'to_sep', label: 'To', type: 'select', default: 'comma', options: [
-      { value: 'newline', label: 'Newline' },
-      { value: 'comma', label: 'Comma' },
-      { value: 'comma_space', label: 'Comma + Space' },
-      { value: 'semicolon', label: 'Semicolon' },
-      { value: 'tab', label: 'Tab' },
-      { value: 'space', label: 'Space' },
-      { value: 'pipe', label: 'Pipe |' },
-      { value: 'custom', label: 'Custom' },
-    ]},
+    {
+      key: 'from_sep', label: 'From', type: 'select', default: 'newline', options: [
+        { value: 'newline', label: 'Newline' },
+        { value: 'comma', label: 'Comma' },
+        { value: 'semicolon', label: 'Semicolon' },
+        { value: 'tab', label: 'Tab' },
+        { value: 'space', label: 'Space' },
+        { value: 'pipe', label: 'Pipe |' },
+        { value: 'custom', label: 'Custom' },
+      ]
+    },
+    {
+      key: 'to_sep', label: 'To', type: 'select', default: 'comma', options: [
+        { value: 'newline', label: 'Newline' },
+        { value: 'comma', label: 'Comma' },
+        { value: 'comma_space', label: 'Comma + Space' },
+        { value: 'semicolon', label: 'Semicolon' },
+        { value: 'tab', label: 'Tab' },
+        { value: 'space', label: 'Space' },
+        { value: 'pipe', label: 'Pipe |' },
+        { value: 'custom', label: 'Custom' },
+      ]
+    },
     { key: 'custom_from', label: 'Custom from', type: 'text', default: '', placeholder: 'Custom separator' },
     { key: 'custom_to', label: 'Custom to', type: 'text', default: '', placeholder: 'Custom separator' },
-    { key: 'trim', label: 'Trim items', type: 'select', default: 'true', options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' },
-    ]},
-    { key: 'remove_empty', label: 'Remove empty', type: 'select', default: 'true', options: [
-      { value: 'true', label: 'Yes' },
-      { value: 'false', label: 'No' },
-    ]},
+    {
+      key: 'trim', label: 'Trim items', type: 'select', default: 'true', options: [
+        { value: 'true', label: 'Yes' },
+        { value: 'false', label: 'No' },
+      ]
+    },
+    {
+      key: 'remove_empty', label: 'Remove empty', type: 'select', default: 'true', options: [
+        { value: 'true', label: 'Yes' },
+        { value: 'false', label: 'No' },
+      ]
+    },
   ],
   'random-string': [
     { key: 'length', label: 'Length', type: 'number', default: '32', placeholder: '1–4096' },
-    { key: 'count',  label: 'Count',  type: 'number', default: '1',  placeholder: '1–100' },
+    { key: 'count', label: 'Count', type: 'number', default: '1', placeholder: '1–100' },
   ],
 };
 
@@ -355,7 +363,7 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
   const [showHistory, setShowHistory] = useState(false);
 
   // Tool-specific config controls state
-  const controls = toolControls[toolId] ?? [];
+  const controls = useMemo(() => toolControls[toolId] ?? [], [toolId]);
   const [configValues, setConfigValues] = useState<Record<string, string>>({});
 
   const setConfigValue = (key: string, value: string) => {
@@ -401,6 +409,7 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
     setLoading(true);
     try {
       if (toolId === 'qr-code') {
+        const QRCode = (await import('qrcode')).default;
         const data = await QRCode.toDataURL(input || '', { errorCorrectionLevel: 'M', width: 360, margin: 2 });
         setQrDataUrl(data);
         setOutput(data);
@@ -423,11 +432,45 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
   useEffect(() => { runRef.current = run; }, [run]);
 
   const lang = highlightLang[toolId];
-  const highlightedHtml = useMemo(() => {
-    if (!lang || !output) return '';
-    const grammar = Prism.languages[lang];
-    if (!grammar) return '';
-    return Prism.highlight(output, grammar, lang);
+  const [highlightedHtml, setHighlightedHtml] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    if (!lang || !output) {
+      setHighlightedHtml('');
+      return;
+    }
+
+    (async () => {
+      // Dynamically load prism component
+      const Prism = (await import('prismjs')).default;
+      switch (lang) {
+        // @ts-ignore
+        case 'json': await import('prismjs/components/prism-json'); break;
+        // @ts-ignore
+        case 'yaml': await import('prismjs/components/prism-yaml'); break;
+        // @ts-ignore
+        case 'css': await import('prismjs/components/prism-css'); break;
+        // @ts-ignore
+        case 'javascript': await import('prismjs/components/prism-javascript'); break;
+        // @ts-ignore
+        case 'jsx': await import('prismjs/components/prism-jsx'); break;
+        // @ts-ignore
+        case 'markup': await import('prismjs/components/prism-markup'); break;
+        // @ts-ignore
+        case 'sql': await import('prismjs/components/prism-sql'); break;
+      }
+
+      if (!active) return;
+      const grammar = Prism.languages[lang];
+      if (!grammar) {
+        setHighlightedHtml('');
+        return;
+      }
+      setHighlightedHtml(Prism.highlight(output, grammar, lang));
+    })();
+
+    return () => { active = false; };
   }, [lang, output]);
 
   useEffect(() => {
@@ -483,6 +526,7 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
     if (!ctx) throw new Error('Could not create canvas context.');
     ctx.drawImage(image, 0, 0);
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const jsQR = (await import('jsqr')).default;
     const decoded = jsQR(imageData.data, imageData.width, imageData.height);
     if (!decoded) {
       setMeta('No QR code found in image.');

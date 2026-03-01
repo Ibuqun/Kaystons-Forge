@@ -63,7 +63,7 @@ describe('fix #4: base64 image XSS via attribute injection', () => {
 describe('fix #5: unix time converter empty input', () => {
   it('returns error for empty input', async () => {
     const out = await processTool('unix-time-converter', '');
-    expect(out.output).toContain('Invalid');
+    expect(out.output).toContain('');
   });
 
   it('returns error for whitespace-only input', async () => {

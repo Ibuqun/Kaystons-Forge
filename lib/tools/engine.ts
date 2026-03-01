@@ -1,25 +1,16 @@
-import CryptoJS from 'crypto-js';
 import { createPatch, diffLines } from 'diff';
-import { parse as csvParse, unparse as csvUnparse } from 'papaparse';
 import { load as yamlLoad, dump as yamlDump } from 'js-yaml';
 import { format as formatSql } from 'sql-formatter';
 import { minify_sync as terserMinifySync } from 'terser';
-import { XMLParser } from 'fast-xml-parser';
-import xmlFormat from 'xml-formatter';
 import htmlToJsx from 'html-to-jsx';
-import { jwtDecode } from 'jwt-decode';
 import { runSplitter, parseConfig as parseSplitterConfig, type SplitterConfig } from './list-splitter';
 import { runCsvToSql, type SqlDialect } from './csv-to-sql';
 import { runListCompare } from './list-compare';
 import { ulid, decodeTime } from 'ulidx';
 import { v4 as uuidv4, v7 as uuidv7 } from 'uuid';
-import cronstrue from 'cronstrue';
 import { phpUnserialize, phpSerialize, phpArraySyntax, parsePhpArraySyntax, type PhpValue } from './php-tools';
-import { curlToJs, curlToPython, curlToPhp } from './curl-to-code';
 import { jsonToTypeScript, jsonToPython, jsonToGo, jsonToRust, type JsonValue } from './json-to-code';
-import { decodeCertificate } from './cert-decoder';
 import { loadAll as yamlLoadAll } from 'js-yaml';
-import { marked } from 'marked';
 
 export interface ProcessOptions {
   action?: string;
@@ -350,7 +341,7 @@ function getNextCronRuns(expr: string, count: number): string[] {
   return results.length ? results : ['No runs found in next year'];
 }
 
-export function processTool(toolId: string, input: string, options: ProcessOptions = {}): ProcessResult {
+export async function processTool(toolId: string, input: string, options: ProcessOptions = {}): Promise<ProcessResult> {
   const action = options.action ?? 'default';
 
   try {
@@ -431,10 +422,11 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
         if (!headSegment || !payloadSegment) return { output: 'Invalid JWT' };
         const decodeSegment = (segment: string) => JSON.parse(atob(segment.replaceAll('-', '+').replaceAll('_', '/')));
         const header = decodeSegment(headSegment);
+        const { jwtDecode } = await import('jwt-decode');
         const payload = jwtDecode<Record<string, unknown>>(token);
         const exp = typeof payload.exp === 'number' ? new Date(payload.exp * 1000) : null;
         return {
-          output: `Header:\n${stringify(header)}\n\nPayload:\n${stringify(payload)}\n\nExpires At: ${exp ? exp.toISOString() : 'N/A'}\nExpired: ${exp ? exp.getTime() < Date.now() : 'N/A'}`,
+          output: `// Header\n${stringify(header, true)}\n\n// Payload\n${stringify(payload, true)}\n\n// Expires At: ${exp ? exp.toISOString() : 'N/A'}\n// Expired: ${exp ? exp.getTime() < Date.now() : 'N/A'}`,
         };
       }
 
@@ -467,11 +459,14 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
         return { output: action === 'unescape' ? unescapeBackslash(input) : escapeBackslash(input) };
 
       case 'uuid-ulid': {
-        if (action === 'uuid-v4') return { output: uuidv4() };
-        if (action === 'uuid-v7') return { output: uuidv7() };
-        if (action === 'ulid') return { output: ulid() };
-        if (action === 'decode-ulid') return { output: new Date(decodeTime(input.trim())).toISOString() };
-        return { output: [uuidv4(), uuidv7(), ulid()].join('\n') };
+        if (action === 'uuid-v4') { const { v4: uuidv4 } = await import('uuid'); return { output: uuidv4() }; }
+        if (action === 'uuid-v7') { const { v7: uuidv7 } = await import('uuid'); return { output: uuidv7() }; }
+        if (action === 'ulid') { const { monotonicFactory } = await import('ulidx'); const ulidGen = monotonicFactory(); return { output: ulidGen() }; }
+        if (action === 'decode-ulid') { const { decodeTime } = await import('ulidx'); return { output: new Date(decodeTime(input.trim())).toISOString() }; }
+        const { v4: uuidv4, v7: uuidv7 } = await import('uuid');
+        const { monotonicFactory } = await import('ulidx');
+        const ulidGen = monotonicFactory();
+        return { output: [uuidv4(), uuidv7(), ulidGen()].join('\n') };
       }
 
       case 'html-preview':
@@ -503,10 +498,10 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
         const parsed = parseBase(valuePart || '0', base);
         return {
           output: [
-            `Binary: ${parsed.toString(2)}`,
-            `Octal: ${parsed.toString(8)}`,
+            `Binary:  ${parsed.toString(2).padStart(8, '0')}`,
+            `Octal:   ${parsed.toString(8)}`,
             `Decimal: ${parsed.toString(10)}`,
-            `Hex: ${parsed.toString(16).toUpperCase()}`,
+            `Hex:     ${parsed.toString(16).toUpperCase()}`,
           ].join('\n'),
         };
       }
@@ -528,20 +523,22 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
 
       case 'js-beautify': {
         if (action === 'minify') {
-          const out = terserMinifySync(input, { compress: true, mangle: true });
+          const { minify: terserMinifySync } = await import('terser');
+          const out = await terserMinifySync(input, { compress: true, mangle: true });
           return { output: out.code || '' };
         }
         return { output: beautifyJs(input) };
       }
 
       case 'xml-beautify': {
+        const { XMLParser } = await import('fast-xml-parser');
         const parser = new XMLParser();
         parser.parse(input);
-        return { output: action === 'minify' ? input.replace(/>\s+</g, '><').trim() : xmlFormat(input, { indentation: '  ' }) };
+        return { output: action === 'minify' ? input.replace(/>\s+</g, '><').trim() : (await import('xml-formatter')).default(input, { indentation: '  ' }) };
       }
 
       case 'lorem-ipsum': {
-        const count = Math.max(1, Math.min(1000, Number(input.trim() || '3')));
+        const count = Math.max(1, Math.min(1000, Number(String(input).trim() || '3')));
         const unit = action === 'words' ? 'words' : 'paragraphs';
         const base = 'Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua';
         if (unit === 'words') {
@@ -591,10 +588,12 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
           return { output: 'Each item in the array must be a plain object (not a primitive or nested array).' };
         }
         const rows = parsed.map((item) => flattenRecord(item as Record<string, unknown>));
+        const { unparse: csvUnparse } = await import('papaparse');
         return { output: csvUnparse(rows) };
       }
 
       case 'csv-to-json': {
+        const { parse: csvParse } = await import('papaparse');
         const parsed = csvParse<Record<string, unknown>>(input, {
           header: true,
           skipEmptyLines: true,
@@ -612,38 +611,47 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
         let digest;
         switch (algo) {
           case 'md5':
-            digest = CryptoJS.MD5(input);
+            digest = (await import("crypto-js")).MD5(input);
             break;
           case 'sha1':
-            digest = CryptoJS.SHA1(input);
+            digest = (await import("crypto-js")).SHA1(input);
             break;
           case 'sha256':
-            digest = CryptoJS.SHA256(input);
+            digest = (await import("crypto-js")).SHA256(input);
             break;
           case 'sha512':
-            digest = CryptoJS.SHA512(input);
+            digest = (await import("crypto-js")).SHA512(input);
             break;
           case 'hmac-sha256':
-            digest = CryptoJS.HmacSHA256(input, key);
+            digest = (await import("crypto-js")).HmacSHA256(input, key);
             break;
           default:
-            digest = CryptoJS.SHA256(input);
+            digest = (await import("crypto-js")).SHA256(input);
         }
         return {
-          output: digest.toString(CryptoJS.enc.Hex),
+          output: digest.toString((await import("crypto-js")).enc.Hex),
           meta: [
             `Algorithm: ${algo.toUpperCase()}${algo === 'hmac-sha256' ? ` (key: ${key ? 'provided' : 'none'})` : ''}`,
-            `Base64: ${digest.toString(CryptoJS.enc.Base64)}`,
-            `Base64URL: ${digest.toString(CryptoJS.enc.Base64).replaceAll('+', '-').replaceAll('/', '_').replaceAll(/=+$/g, '')}`,
+            `Base64: ${digest.toString((await import("crypto-js")).enc.Base64)}`,
+            `Base64URL: ${digest.toString((await import("crypto-js")).enc.Base64).replaceAll('+', '-').replaceAll('/', '_').replaceAll(/=+$/g, '')}`,
           ].join('\n'),
         };
       }
 
-      case 'html-to-jsx':
-        return { output: htmlToJsx(input) };
+      case 'html-to-jsx': {
+        try {
+          const mod = await import('html-to-jsx');
+          const htmlToJsx = mod.default || mod;
+          if (typeof input !== 'string') throw new Error('Input must be a string');
+          return { output: htmlToJsx(String(input)) };
+        } catch (e: any) {
+          return { output: 'Conversion error: ' + e.message };
+        }
+      }
 
       case 'markdown-preview': {
-        const rawHtml = marked.parse(input || '', { gfm: true, breaks: false }) as string;
+        const { marked } = await import('marked');
+        const rawHtml = await marked.parse(input || '', { gfm: true, breaks: false }) as string;
         // Sanitize to prevent XSS - strip script tags, event handlers, etc.
         const sanitized = rawHtml
           .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
@@ -658,6 +666,7 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
 
       case 'sql-formatter': {
         const language = action === 'default' ? 'sql' : action;
+        const { format: formatSql } = await import('sql-formatter');
         return { output: formatSql(input, { language: language as any }) };
       }
 
@@ -719,6 +728,8 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
         const expr = input.trim();
         if (!expr) return { output: 'Enter a cron expression (5 fields: min hour dom mon dow)' };
         try {
+          const cronstrueMod = await import('cronstrue');
+          const cronstrue = cronstrueMod.default || cronstrueMod;
           const description = cronstrue.toString(expr, { throwExceptionOnParseError: true });
           if (action === 'next-runs') {
             const runs = getNextCronRuns(expr, 5);
@@ -760,6 +771,7 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
       }
 
       case 'curl-to-code': {
+        const { curlToPython, curlToPhp, curlToJs } = await import('./curl-to-code');
         if (action === 'python') return { output: curlToPython(input) };
         if (action === 'php') return { output: curlToPhp(input) };
         return { output: curlToJs(input) };
@@ -767,14 +779,17 @@ export function processTool(toolId: string, input: string, options: ProcessOptio
 
       case 'json-to-code': {
         const val = parseJsonLoose(input);
+        const { jsonToPython, jsonToGo, jsonToRust, jsonToTypeScript } = await import('./json-to-code');
         if (action === 'python') return { output: jsonToPython(val as JsonValue) };
         if (action === 'go') return { output: jsonToGo(val as JsonValue) };
         if (action === 'rust') return { output: jsonToRust(val as JsonValue) };
         return { output: jsonToTypeScript(val as JsonValue) };
       }
 
-      case 'cert-decoder':
+      case 'cert-decoder': {
+        const { decodeCertificate } = await import('./cert-decoder');
         return { output: decodeCertificate(input) };
+      }
 
       case 'string-case': {
         const words = input
