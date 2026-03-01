@@ -285,4 +285,25 @@ describe("tool engine", () => {
     expect(out.output).toContain('"foo"');
     expect(out.output).toContain('"bar"');
   });
+
+  it("curl: converts to javascript fetch", async () => {
+    const out = await processTool(
+      "curl-to-code",
+      "curl -X POST https://api.example.com/users -H \"Content-Type: application/json\" -d '{\"name\":\"Alice\"}'",
+      { action: "javascript" },
+    );
+    expect(out.output).toContain("fetch");
+    expect(out.output).toContain("https://api.example.com/users");
+    expect(out.output).toContain("POST");
+  });
+
+  it("curl: converts to python requests", async () => {
+    const out = await processTool(
+      "curl-to-code",
+      "curl https://api.example.com/data",
+      { action: "python" },
+    );
+    expect(out.output).toContain("requests");
+    expect(out.output).toContain("https://api.example.com/data");
+  });
 });
