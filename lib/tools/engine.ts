@@ -13,6 +13,11 @@ import { runCsvToSql, type SqlDialect } from './csv-to-sql';
 import { runListCompare } from './list-compare';
 import { ulid, decodeTime } from 'ulidx';
 import { v4 as uuidv4, v7 as uuidv7 } from 'uuid';
+import cronstrue from 'cronstrue';
+import { phpUnserialize, phpSerialize, phpArraySyntax, parsePhpArraySyntax, type PhpValue } from './php-tools';
+import { curlToJs, curlToPython, curlToPhp } from './curl-to-code';
+import { jsonToTypeScript, jsonToPython, jsonToGo, jsonToRust, type JsonValue } from './json-to-code';
+import { decodeCertificate } from './cert-decoder';
 
 export interface ProcessOptions {
   action?: string;
@@ -285,6 +290,51 @@ function beautifyJs(js: string): string {
     }
   }
   return result.join('\n');
+}
+
+function getNextCronRuns(expr: string, count: number): string[] {
+  const parts = expr.trim().split(/\s+/);
+  if (parts.length < 5) return ['Invalid cron expression (need 5 fields)'];
+  const [minPart, hourPart, domPart, monPart, dowPart] = parts;
+
+  function matches(value: number, part: string): boolean {
+    if (part === '*') return true;
+    return part.split(',').some((p) => {
+      if (p.includes('/')) {
+        const [range, step] = p.split('/');
+        const s = parseInt(step);
+        const start = range === '*' ? 0 : parseInt(range.split('-')[0]);
+        return value >= start && (value - start) % s === 0;
+      }
+      if (p.includes('-')) {
+        const [lo, hi] = p.split('-').map(Number);
+        return value >= lo && value <= hi;
+      }
+      return parseInt(p) === value;
+    });
+  }
+
+  const results: string[] = [];
+  const cursor = new Date();
+  cursor.setSeconds(0, 0);
+  cursor.setMinutes(cursor.getMinutes() + 1);
+
+  let iterations = 0;
+  while (results.length < count && iterations < 525600) {
+    iterations++;
+    const dow = cursor.getDay();
+    if (
+      matches(cursor.getMinutes(), minPart) &&
+      matches(cursor.getHours(), hourPart) &&
+      matches(cursor.getDate(), domPart) &&
+      matches(cursor.getMonth() + 1, monPart) &&
+      (matches(dow, dowPart) || (dow === 0 && matches(7, dowPart)))
+    ) {
+      results.push(cursor.toLocaleString());
+    }
+    cursor.setMinutes(cursor.getMinutes() + 1);
+  }
+  return results.length ? results : ['No runs found in next year'];
 }
 
 export async function processTool(toolId: string, input: string, options: ProcessOptions = {}): Promise<ProcessResult> {
@@ -644,6 +694,67 @@ export async function processTool(toolId: string, input: string, options: Proces
         }
         return { output: result, meta: `${items.length} items | From: ${cfg.from_sep || 'newline'} → To: ${cfg.to_sep || 'comma'}` };
       }
+
+      case 'cron-parser': {
+        const expr = input.trim();
+        if (!expr) return { output: 'Enter a cron expression (5 fields: min hour dom mon dow)' };
+        try {
+          const description = cronstrue.toString(expr, { throwExceptionOnParseError: true });
+          if (action === 'next-runs') {
+            const runs = getNextCronRuns(expr, 5);
+            return { output: runs.join('\n'), meta: description };
+          }
+          return { output: description, meta: `Expression: ${expr}` };
+        } catch (e) {
+          return { output: e instanceof Error ? e.message : 'Invalid cron expression' };
+        }
+      }
+
+      case 'php-to-json': {
+        if (action === 'from-array') {
+          const parsed = parsePhpArraySyntax(input);
+          return { output: stringify(parsed, true) };
+        }
+        const parsed = phpUnserialize(input);
+        return { output: stringify(parsed, true) };
+      }
+
+      case 'json-to-php': {
+        const val = parseJsonLoose(input);
+        if (action === 'to-array') return { output: phpArraySyntax(val as PhpValue) };
+        return { output: phpSerialize(val as PhpValue) };
+      }
+
+      case 'php-serializer': {
+        const val = parseJsonLoose(input);
+        return { output: phpSerialize(val as PhpValue) };
+      }
+
+      case 'php-unserializer': {
+        if (action === 'to-array') {
+          const parsed = phpUnserialize(input);
+          return { output: phpArraySyntax(parsed) };
+        }
+        const parsed = phpUnserialize(input);
+        return { output: stringify(parsed, true) };
+      }
+
+      case 'curl-to-code': {
+        if (action === 'python') return { output: curlToPython(input) };
+        if (action === 'php') return { output: curlToPhp(input) };
+        return { output: curlToJs(input) };
+      }
+
+      case 'json-to-code': {
+        const val = parseJsonLoose(input);
+        if (action === 'python') return { output: jsonToPython(val as JsonValue) };
+        if (action === 'go')     return { output: jsonToGo(val as JsonValue) };
+        if (action === 'rust')   return { output: jsonToRust(val as JsonValue) };
+        return { output: jsonToTypeScript(val as JsonValue) };
+      }
+
+      case 'cert-decoder':
+        return { output: decodeCertificate(input) };
 
       case 'string-case': {
         const words = input

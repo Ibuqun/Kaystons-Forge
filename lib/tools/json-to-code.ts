@@ -1,6 +1,6 @@
-interface JsonArray extends Array<JsonValue> {}
-interface JsonRecord extends Record<string, JsonValue> {}
-type JsonValue = null | boolean | number | string | JsonArray | JsonRecord;
+export interface JsonArray extends Array<JsonValue> {}
+export interface JsonRecord extends Record<string, JsonValue> {}
+export type JsonValue = null | boolean | number | string | JsonArray | JsonRecord;
 
 function toPascalCase(s: string): string {
   return s.replace(/(^|[_\-\s])([a-zA-Z])/g, (_, __, c: string) => c.toUpperCase()).replace(/^(.)/, (c: string) => c.toUpperCase());
