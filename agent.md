@@ -1,289 +1,157 @@
-# Adler's Forge Implementation Log
+# Kayston's Forge — Implementation Log
 
-This document records all significant work completed so far in this workspace.
+This document records all significant work completed in this codebase.
 
-## 1. Project Initialization
+---
 
-Created a full Next.js 14 App Router TypeScript project structure from `plan.md` inside `/Users/ibukunoluwa/Projects/Adler’s-Forge`.
+## 1. Project Initialization (Adler's Forge → Kayston's Forge)
 
-### Created core config files
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/package.json`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/tsconfig.json`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/next.config.mjs`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/tailwind.config.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/postcss.config.js`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/next-env.d.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/vitest.config.ts`
+Built a full Next.js 14 App Router TypeScript project from scratch. Originally named "Adler's Forge", later renamed to **Kayston's Forge**.
 
-### Created app shell and routing
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/layout.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/page.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/tools/[toolId]/page.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/globals.css`
+### Core files created
+- `package.json`, `tsconfig.json`, `next.config.mjs`, `tailwind.config.ts`, `postcss.config.js`, `vitest.config.ts`
+- `app/layout.tsx`, `app/page.tsx`, `app/tools/[toolId]/page.tsx`, `app/globals.css`
+- `lib/store.ts`, `lib/db.ts`, `lib/tools/registry.ts`, `lib/tools/engine.ts`
+- `components/layout/AppShell.tsx`, `Sidebar.tsx`, `Header.tsx`, `CommandPalette.tsx`
+- `components/tools/ToolWorkbench.tsx`
+- `hooks/useHistory.ts`, `useClipboard.ts`, `useTool.ts`
+- `types/index.ts`, `types/vendor.d.ts`
+- `public/manifest.json`, `public/sw.js`, `public/icons/icon-192.svg`, `public/icons/icon-512.svg`
+- `tests/unit/engine.test.ts`
 
-## 2. Branding and Naming Changes
+### Initial tool coverage (32 tools)
+Unix Time Converter, JSON Format/Validate, Base64 String/Image, JWT Debugger, RegExp Tester, URL Encode/Decode, URL Parser, HTML Entity Encode/Decode, Backslash Escape/Unescape, UUID/ULID Generate, HTML Preview, Text Diff Checker, YAML↔JSON, Number Base Converter, HTML/CSS/JS/ERB/LESS/SCSS/XML Beautify/Minify, Lorem Ipsum Generator, QR Code Reader/Generator, String Inspector, JSON↔CSV, Hash Generator, HTML to JSX, Markdown Preview, SQL Formatter.
 
-Replaced application naming with **Adler's Forge** (no `DevUtils` app branding retained in implementation).
+---
 
-### Branding set in
-- Metadata title/description in `layout.tsx`
-- Sidebar title and app identity in `Sidebar.tsx`
-- PWA manifest fields in `public/manifest.json`
-- README title and documentation
-- DB class name changed to `AdlersForgeDB`
+## 2. UI Improvements
 
-## 3. Core Architecture Implemented
+- Added Solarized Light theme (default) alongside the original dark theme
+- Added copy buttons on input/output panels
+- Added syntax highlighting (PrismJS) to formatted code outputs
+- Default theme set to light via `data-theme="light"` on `<html>`
 
-## 3.1 UI layout and navigation
-Built a unified multi-tool interface with:
-- Sidebar categories and search
-- Tool header with prev/next navigation
-- Command palette (`Cmd/Ctrl + K`)
-- Keyboard shortcuts
-- Dynamic route per tool
+---
 
-### Files
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/AppShell.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/Sidebar.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/Header.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/CommandPalette.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/ui/Button.tsx`
+## 3. 15 New Tools Added
 
-## 3.2 State and persistence
-Implemented:
-- Zustand app store
-- IndexedDB with Dexie for history/settings/favorites schema
-- Per-tool history save/restore/clear
-- Clipboard helper hook
+Added 15 tools, bringing total to **47 tools** in the registry.
 
-### Files
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/store.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/db.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/hooks/useHistory.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/hooks/useClipboard.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/hooks/useLocalStorage.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/hooks/useTool.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/types/index.ts`
+### New tools
+- `string-case` — String Case Converter (camelCase, PascalCase, snake_case, kebab-case, SCREAMING_SNAKE, Title Case, lowercase, UPPERCASE)
+- `cron-parser` — Cron Job Parser (cronstrue → human-readable, next 5 run times)
+- `color-converter` — Color Converter (hex, RGB, RGBA, HSL, HSLA, named colors, alpha channel support)
+- `php-to-json` — PHP to JSON (unserialize PHP → JSON)
+- `json-to-php` — JSON to PHP (serialize JSON → PHP)
+- `php-serializer` — PHP Serializer (PHP array syntax → serialize wire format)
+- `php-unserializer` — PHP Unserializer (serialize wire format → PHP array syntax)
+- `random-string` — Random String Generator (CSPRNG via `crypto.getRandomValues`, configurable charset/length)
+- `svg-to-css` — SVG to CSS (inline SVG → data URI background-image)
+- `curl-to-code` — cURL to Code (cURL command → JS fetch / Python requests / PHP cURL)
+- `json-to-code` — JSON to Code (JSON → TypeScript interface / Python dataclass / Go struct / Rust struct)
+- `cert-decoder` — Certificate Decoder (X.509 PEM → human-readable, pure-JS ASN.1 DER parser)
+- `hex-to-ascii` — Hex to ASCII (UTF-8 TextDecoder, strict 2-char token validation)
+- `ascii-to-hex` — ASCII to Hex (UTF-8 TextEncoder for correct byte encoding)
+- `line-sort` — Line Sort/Dedupe (sort ascending/descending/reverse/shuffle, optional dedupe)
 
-## 3.3 Tool registry
-Implemented complete tool registry (30 tools) with Heroicons, categories, IDs, descriptions, and keywords.
+### New auxiliary modules
+- `lib/tools/php-tools.ts` — phpSerialize, phpUnserialize, phpArraySyntax, parsePhpArraySyntax
+- `lib/tools/curl-to-code.ts` — curlToJs, curlToPython, curlToPhp
+- `lib/tools/json-to-code.ts` — jsonToTypeScript, jsonToPython, jsonToGo, jsonToRust
+- `lib/tools/cert-decoder.ts` — decodeCertificate (pure-JS ASN.1 DER + X.509 PEM)
+- `lib/tools/list-compare.ts` — compareLists, splitItems (fuzzy matching with Levenshtein)
+- `lib/tools/csv-to-sql.ts` — csvToSql (char-by-char CSV parser handles multiline quoted fields)
 
-### File
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/tools/registry.ts`
+---
 
-## 4. Tool Execution Engine
+## 4. Bug Fixes (Gemini Section 1 — 6 edge cases)
 
-Implemented a centralized processing engine with real functionality for all tool IDs.
+All 6 Gemini-reported edge cases confirmed fixed:
+1. `parseJsonLoose` — replaced unsafe `new Function()` with safe 3-step regex pipeline
+2. `detectTimestamp` — uses `Math.abs(n).toString().length` to fix negative timestamp detection
+3. `yaml-to-json` — uses `yamlLoadAll` for multi-document YAML support
+4. `color-converter` — alpha channel support (rgba, hsla, 4/8-digit hex), added `to-hex` action
+5. `url-encode-decode` — `decode` is pure `decodeURIComponent`; new `form-decode` action for `+` → space
+6. `json-to-csv` — rejects arrays of primitives/nested arrays
 
-### File
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/tools/engine.ts`
+---
 
-### Tool coverage implemented
-1. Unix Time Converter
-2. JSON Format/Validate
-3. Base64 String Encode/Decode
-4. Base64 Image Encode/Decode
-5. JWT Debugger
-6. RegExp Tester
-7. URL Encode/Decode
-8. URL Parser
-9. HTML Entity Encode/Decode
-10. Backslash Escape/Unescape
-11. UUID/ULID Generate/Decode
-12. HTML Preview
-13. Text Diff Checker
-14. YAML to JSON
-15. JSON to YAML
-16. Number Base Converter
-17. HTML Beautify/Minify
-18. CSS Beautify/Minify
-19. JS Beautify/Minify
-20. ERB Beautify/Minify
-21. LESS Beautify/Minify
-22. SCSS Beautify/Minify
-23. XML Beautify/Minify
-24. Lorem Ipsum Generator
-25. QR Code Reader/Generator (generate in engine/workbench integration)
-26. String Inspector
-27. JSON to CSV
-28. CSV to JSON
-29. Hash Generator
-30. HTML to JSX
-31. Markdown Preview
-32. SQL Formatter
+## 5. Bug Fixes (Codex Section 2 — 11 edge cases)
 
-Note: The plan listed “30 tools”; naming/grouping in implementation follows the supplied IDs and included features from the spec, with complete route coverage in the registry.
+All 11 Codex-reported edge cases fixed:
+1. **list-compare DoS** — threshold reduced 2.5M→25K pairs, string cap at 500 chars
+2. **list-compare case preservation** — original casing preserved via `origA`/`origB` maps
+3. **negative timestamps** — `Math.abs(n).toString().length` for abs-value digit counting
+4. **YAML multi-doc** — `yamlLoadAll` properly flattens multiple documents
+5. **color-converter alpha** — 8-digit hex and rgba/hsla alpha preserved in all conversions
+6. **url-encode-decode** — form decoding action added for `+`→space support
+7. **json-to-csv primitive arrays** — validates input is array of objects before processing
+8. **hex-to-ascii UTF-8** — replaced `charCodeAt` with `TextDecoder` for correct UTF-8 decoding
+9. **ascii-to-hex UTF-8** — replaced `charCodeAt` with `TextEncoder` for correct byte output
+10. **svg-to-css validation** — requires `<svg` tag even for `<?xml` preamble inputs
+11. **line-sort dedupe (first-seen)** — iterative Map build with `!seen.has(key)` guard; stats use same trim+lowercase normalization
 
-## 5. Tool Workbench UI
+---
 
-Built a shared, functional workbench used by all tools.
+## 6. Test Suite
 
-### File
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/tools/ToolWorkbench.tsx`
+Three test files, **157 tests total**, all passing:
+- `tests/unit/engine.test.ts` — 57 tests (all 47 tool IDs + actions)
+- `tests/unit/bugfixes.test.ts` — 28 regression tests (Gemini + Codex confirmed fixes)
+- `tests/unit/fuzz.test.ts` — 72 parser robustness tests (adversarial inputs for PHP, cURL, cert-decoder, regex, line-sort)
 
-### Implemented behavior
-- Tool action buttons per tool
-- Input editor + optional secondary input
-- Output editor
-- Preview panes for HTML/Markdown/Base64 image
-- QR generation and PNG download
-- QR decode from uploaded image (`jsqr`)
-- Copy, clear, download actions
-- Keyboard actions (`Cmd/Ctrl+Enter`, etc.)
-- Per-tool history panel and restore
-- Sample default content for key tools
+### Fuzz tests found and fixed 3 additional bugs:
+1. `parsePhpArraySyntax` — silently returned partial results on unclosed brackets/strings; added EOF validation
+2. `processTool` — was `async` (returned Promise); converted to synchronous using `terser.minify_sync`
+3. `line-sort` — `dedupe: true` option was ignored (only `action: 'dedupe'` worked); fixed via `options.dedupe` check
 
-## 6. PWA and Offline Assets
+---
 
-Created installable/offline-supporting assets:
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/public/manifest.json`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/public/sw.js`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/public/icons/icon-192.svg`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/public/icons/icon-512.svg`
+## 7. Cybersecurity Hardening (Phase 1 + Phase 2)
 
-Service worker registration added in `AppShell.tsx`.
+### Security headers
+- `vercel.json` — CSP, HSTS (`max-age=31536000; includeSubDomains; preload`), X-Content-Type-Options, Referrer-Policy, Permissions-Policy, X-Frame-Options
 
-## 7. Testing and Documentation
+### CI / Supply chain
+- `.github/workflows/security.yml` — CodeQL SAST (security-extended queries), npm audit (critical-only), TruffleHog secret scanning
+- `.github/workflows/sbom.yml` — CycloneDX SBOM on push to main + releases (attached to GitHub Releases)
+- `.github/dependabot.yml` — Weekly npm + GitHub Actions dependency updates
 
-Created:
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/tests/unit/engine.test.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/README.md`
+### VDP / Disclosure
+- `public/.well-known/security.txt` + `public/security.txt` — RFC 9116 security.txt
+- `public/security-policy.html` — Full VDP with scope, SLA table, safe harbor, acknowledgments
 
-Unit tests validate representative tool behavior:
-- JSON formatting
-- Base64 round-trip
-- URL parsing
-- Hash generation
+### Process
+- `docs/INCIDENT_RESPONSE.md` — P0–P3 severity matrix, 7-step incident process, hotfix checklist, communication templates
 
-## 8. Fixes Made After User QA Feedback
+### Dependency fix
+- `diff` upgraded `7.0.0 → ^8.0.3` to resolve DoS advisory GHSA-73rr
 
-User feedback indicated three major issues. All were addressed.
+---
 
-## 8.1 "JSON formatter fails"
-Problem:
-- JSON formatter returned raw parse failures for certain non-strict input.
+## 8. UI Enhancements (frontend-design)
 
-Fix:
-- Added tolerant parser flow in `engine.ts`:
-  - strict `JSON.parse`
-  - fallback normalization for common relaxed forms
-  - explicit, readable parse errors
-- Prevents opaque failures and improves formatter reliability.
+### Favicon
+- `public/favicon.svg` — Forge mark (// slash bars in brand gold `#b58900` on warm dark background)
+- Wired via `metadata.icons` in `app/layout.tsx` and explicit `<link rel="icon">` in `<head>`
 
-## 8.2 "Wrap input/output by default and avoid page scrolling"
-Problem:
-- Editor wrapping/scroll experience did not match requested behavior.
+### Collapsible sidebar sections
+- `components/layout/Sidebar.tsx` — Category headers are now click-to-toggle buttons
+- Smooth animation via CSS `grid-template-rows: 0fr → 1fr` (no JS height calculation)
+- `ChevronRightIcon` rotates 90° to indicate expanded/collapsed state
+- Auto-expands all sections when a search query is active
+- Collapsed sidebar (icon-only mode) bypasses the toggle UI entirely
 
-Fix in `ToolWorkbench.tsx`:
-- Added `Wrap input` and `Wrap output` controls.
-- Set both to ON by default.
-- Confined scrolling to editor/history panels using fixed-height workspace layout.
-- Reduced full-page scroll dependence by using panel-level `overflow-auto` and min-height controls.
+---
 
-## 8.3 "Looks like UI only"
-Problem:
-- User perceived limited tool functionality depth.
+## 9. Current State
 
-Fix:
-- Reworked core engine and workbench interactions so each tool route performs real transformations with actionable output.
-- Improved action mappings and sample defaults for immediate usability.
-- Added QR decode upload flow and improved hash/meta outputs.
+- **47 tools** in registry
+- **157 tests** passing (57 engine + 28 bugfixes + 72 fuzz)
+- **Deployed**: Vercel (static export)
+- **GitHub**: https://github.com/Ibuqun/Kaystons-Forge
+- **Security hardening**: Phase 1 + Phase 2 complete; Phase 3 (external pentest, ISO 27001) deferred
 
-## 9. Dependency and Build Issue Fixes
-
-Resolved multiple compile/runtime issues encountered during implementation:
-- Fixed heroicon name mismatch (`ArrowsRightLeftIcon`).
-- Removed browser-incompatible minifier path causing `fs` resolution errors.
-- Added missing types:
-  - `@types/qrcode`
-  - `@types/diff`
-- Added local module declaration for `html-to-jsx`:
-  - `/Users/ibukunoluwa/Projects/Adler’s-Forge/types/vendor.d.ts`
-- Fixed SQL formatter TypeScript language typing.
-- Reworked tolerant JSON parser to avoid `json5` bundling failure in the Next runtime path.
-- Cleared stale `.next` artifacts and restarted dev server on alternate host/port when needed.
-
-## 10. Current Access URL
-
-Working local URL provided:
-- `http://127.0.0.1:4173/tools/json-format-validate`
-
-Root URL:
-- `http://127.0.0.1:4173`
-
-## 11. Verification Status
-
-Successful checks after fixes:
-- `npm run build` passed.
-- `npm run test` passed (all tests green).
-
-## 12. Main Files Added/Modified
-
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/README.md`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/agent.md`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/globals.css`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/layout.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/page.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/tools/[toolId]/page.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/AppShell.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/CommandPalette.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/Header.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/Sidebar.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/tools/ToolWorkbench.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/ui/Button.tsx`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/hooks/useClipboard.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/hooks/useHistory.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/hooks/useLocalStorage.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/hooks/useTool.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/db.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/store.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/tools/engine.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/tools/registry.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/public/icons/icon-192.svg`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/public/icons/icon-512.svg`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/public/manifest.json`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/public/sw.js`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/tests/unit/engine.test.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/types/index.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/types/vendor.d.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/vitest.config.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/next.config.mjs`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/package.json`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/postcss.config.js`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/tailwind.config.ts`
-- `/Users/ibukunoluwa/Projects/Adler’s-Forge/tsconfig.json`
-
-
-## 13. Post-MiniMax Review (2026-02-24)
-
-Performed a fresh audit after MiniMax edits.
-
-### 13.1 Review scope and constraints
-- Workspace has no usable git history (`HEAD` missing), so a commit-by-commit diff is not available.
-- Review was done as a full current-state audit of source, runtime behavior, and build/test outputs.
-
-### 13.2 Files and areas reviewed
-- Core tool logic: `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/tools/engine.ts`
-- Workbench behavior: `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/tools/ToolWorkbench.tsx`
-- Shell/layout keyboard routing: `/Users/ibukunoluwa/Projects/Adler’s-Forge/components/layout/AppShell.tsx`
-- Styling and editor UX: `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/globals.css`
-- Registry and routing: `/Users/ibukunoluwa/Projects/Adler’s-Forge/lib/tools/registry.ts`, `/Users/ibukunoluwa/Projects/Adler’s-Forge/app/tools/[toolId]/page.tsx`
-- Test suite and config: `/Users/ibukunoluwa/Projects/Adler’s-Forge/tests/unit/engine.test.ts`, `/Users/ibukunoluwa/Projects/Adler’s-Forge/vitest.config.ts`
-
-### 13.3 Verification commands and results
-- `npm run build`: Passed.
-- `npm run test`: Passed (`32` tests, `1` test file).
-
-### 13.4 Findings
-- No blocking functional regression found from static/build/test audit.
-- Tool runtime pathing and static generation are healthy for all generated tool routes.
-- Unit test coverage is stronger than prior state (increased from the earlier minimal set).
-
-### 13.5 Residual risks
-- No git baseline in this workspace means “what changed vs. previous version” cannot be proven with exact diffs.
-- Generated output directories (`out/`) and dependency tree (`node_modules/`) are present locally; this is fine for runtime, but should not be versioned in source control.
-
-### 13.6 Current functional test URL
-- Primary: `http://127.0.0.1:4173`
-- Direct tool URL: `http://127.0.0.1:4173/tools/json-format-validate`
-
+### Known issues / future work
+- Bundle is large (~513 kB first load) — needs dynamic imports per tool
+- Theme switcher UI not implemented (light/dark CSS exists, no toggle button)
