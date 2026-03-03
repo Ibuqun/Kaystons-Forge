@@ -46,6 +46,21 @@ describe('fix #3: markdown preview XSS sanitized', () => {
     const out = await processTool('markdown-preview', '<a href="javascript:alert(1)">click</a>');
     expect(out.previewHtml).not.toContain('javascript:');
   });
+
+  it('blocks data: URI HTML execution', async () => {
+    const out = await processTool('markdown-preview', '<a href="data:text/html,<script>alert(1)</script>">x</a>');
+    expect(out.previewHtml).not.toMatch(/data:text\/html/i);
+  });
+
+  it('blocks SVG animate XSS', async () => {
+    const out = await processTool('markdown-preview', '<svg><a><animate attributeName="href" to="javascript:alert(1)"/></a></svg>');
+    expect(out.previewHtml).not.toMatch(/javascript:/i);
+  });
+
+  it('blocks formaction attribute XSS', async () => {
+    const out = await processTool('markdown-preview', '<form><button formaction="javascript:alert(1)">x</button></form>');
+    expect(out.previewHtml).not.toMatch(/formaction/i);
+  });
 });
 
 describe('fix #4: base64 image XSS via attribute injection', () => {

@@ -651,16 +651,15 @@ export async function processTool(toolId: string, input: string, options: Proces
 
       case 'markdown-preview': {
         const { marked } = await import('marked');
+        const { default: DOMPurify } = await import('dompurify');
         const rawHtml = await marked.parse(input || '', { gfm: true, breaks: false }) as string;
-        // Sanitize to prevent XSS - strip script tags, event handlers, etc.
-        const sanitized = rawHtml
-          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-          .replace(/\bon\w+\s*=\s*["'][^"']*["']/gi, '')
-          .replace(/\bon\w+\s*=\s*[^\s>]*/gi, '')
-          .replace(/javascript\s*:/gi, 'blocked:')
-          .replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '')
-          .replace(/<object\b[^>]*>[\s\S]*?<\/object>/gi, '')
-          .replace(/<embed\b[^>]*>/gi, '');
+        const sanitized = DOMPurify.sanitize(rawHtml, {
+          ALLOWED_TAGS: ['p','br','strong','em','b','i','ul','ol','li',
+                         'h1','h2','h3','h4','h5','h6','blockquote',
+                         'code','pre','a','table','thead','tbody','tr',
+                         'th','td','hr','img','span','div'],
+          ALLOWED_ATTR: ['href','src','alt','class','title','target','rel'],
+        });
         return { output: sanitized, previewHtml: sanitized };
       }
 
