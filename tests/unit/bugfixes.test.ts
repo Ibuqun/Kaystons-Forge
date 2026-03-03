@@ -235,3 +235,11 @@ describe('fix #N: regexp-tester invalid input handling', () => {
     expect(out.output).not.toMatch(/error/i);
   });
 });
+
+describe('fix #N: global input size cap', () => {
+  it('returns error when input exceeds 5 MB', async () => {
+    const huge = 'a'.repeat(5 * 1024 * 1024 + 1);
+    const out = await processTool('string-inspector', huge);
+    expect(out.output).toMatch(/input too large/i);
+  });
+});

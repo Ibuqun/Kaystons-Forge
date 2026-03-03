@@ -346,6 +346,11 @@ export async function processTool(toolId: string, input: string, options: Proces
   const action = options.action ?? 'default';
 
   try {
+      // Guard: reject inputs that would freeze the UI thread
+      const MAX_INPUT_BYTES = 5 * 1024 * 1024; // 5 MB
+      if (input.length > MAX_INPUT_BYTES || (options.secondInput ?? '').length > MAX_INPUT_BYTES) {
+        return { output: 'Input too large (max 5 MB). Paste a smaller sample.' };
+      }
     switch (toolId) {
       case 'unix-time-converter': {
         const ts = detectTimestamp(input);
