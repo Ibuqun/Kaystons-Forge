@@ -222,3 +222,16 @@ describe('Codex fix #6: Loose JSON Parser ReDoS & Functionality', () => {
     expect(out.output).not.toContain('alert');
   });
 });
+
+describe('fix #N: regexp-tester invalid input handling', () => {
+  it('returns error message for invalid regexp pattern instead of throwing', async () => {
+    const out = await processTool('regexp-tester', '[invalid(', { action: 'default' });
+    expect(out.output).toMatch(/invalid regular expression/i);
+  });
+
+  it('falls back to gm flags when invalid flags are provided', async () => {
+    const out = await processTool('regexp-tester', '\\d+', { action: 'xyz', secondInput: 'abc123' });
+    expect(out.output).toBeDefined();
+    expect(out.output).not.toMatch(/error/i);
+  });
+});

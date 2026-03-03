@@ -431,8 +431,14 @@ export async function processTool(toolId: string, input: string, options: Proces
       }
 
       case 'regexp-tester': {
-        const flags = action === 'default' ? 'gm' : action;
-        const regex = new RegExp(input, flags);
+        const validFlags = /^[gimsuy]*$/.test(action) ? action : 'gm';
+        const flags = action === 'default' ? 'gm' : validFlags;
+        let regex: RegExp;
+        try {
+          regex = new RegExp(input, flags);
+        } catch (e) {
+          return { output: `Invalid regular expression: ${e instanceof Error ? e.message : String(e)}` };
+        }
         const test = options.secondInput ?? '';
         const matches = [...test.matchAll(regex)].map((m, i) => {
           const groups = m.slice(1).map((g, idx) => `g${idx + 1}=${g ?? ''}`).join(', ');
