@@ -1,6 +1,8 @@
 name: Security Checks
 
 on:
+  push:
+    branches: [main]
   schedule:
     # Weekly full scan every Monday at 08:00 UTC
     - cron: '0 8 * * 1'
@@ -60,10 +62,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: TruffleHog secret scan
-        uses: trufflesecurity/trufflehog@main
+      - name: TruffleHog secret scan (verified)
+        uses: trufflesecurity/trufflehog@648aca62d5437454d477426fb20c29f402c06a4e
         with:
           path: ./
           base: ${{ github.event.before || github.sha }}
           head: ${{ github.sha }}
           extra_args: --only-verified
+
+      - name: TruffleHog secret scan (unverified high-confidence)
+        uses: trufflesecurity/trufflehog@648aca62d5437454d477426fb20c29f402c06a4e
+        continue-on-error: true
+        with:
+          path: ./
+          base: ${{ github.event.before || github.sha }}
+          head: ${{ github.sha }}
