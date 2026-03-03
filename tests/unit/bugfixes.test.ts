@@ -63,14 +63,20 @@ describe('fix #3: markdown preview XSS sanitized', () => {
   });
 });
 
-describe('fix #4: base64 image XSS via attribute injection', () => {
-  it('escapes malicious input in previewHtml', async () => {
+describe('fix #4: base64 image preview uses safe data URL', () => {
+  it('returns previewDataUrl instead of previewHtml for base64-image', async () => {
+    const out = await processTool('base64-image', 'aGVsbG8=');
+    expect(out.previewHtml).toBeUndefined();
+    expect(out.previewDataUrl).toBeDefined();
+    expect(out.previewDataUrl).toMatch(/^data:image\//);
+  });
+
+  it('malicious input does not produce previewHtml with injected attributes', async () => {
     const malicious = '" onerror="alert(1)" data-x="';
     const out = await processTool('base64-image', malicious);
-    if (out.previewHtml) {
-      // Quotes must be escaped so the attribute can't break out
-      expect(out.previewHtml).toContain('&quot;');
-      expect(out.previewHtml).not.toContain('onerror="alert');
+    expect(out.previewHtml).toBeUndefined();
+    if (out.previewDataUrl) {
+      expect(out.previewDataUrl).toMatch(/^data:image\/png;base64,/);
     }
   });
 });

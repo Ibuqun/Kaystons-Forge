@@ -24,6 +24,7 @@ export interface ProcessOptions {
 export interface ProcessResult {
   output: string;
   previewHtml?: string;
+  previewDataUrl?: string;
   table?: Array<Record<string, string>>;
   meta?: string;
 }
@@ -405,14 +406,13 @@ export async function processTool(toolId: string, input: string, options: Proces
           return {
             output: body || '',
             meta: head,
-            previewHtml: `<img src="${escapeHtmlAttr(raw)}" alt="Base64 preview" style="max-width:100%;height:auto" />`,
+            previewDataUrl: raw,
           };
         }
-        const safeBase64 = escapeHtmlAttr(raw);
-        const dataUrl = `data:image/png;base64,${safeBase64}`;
+        const dataUrl = `data:image/png;base64,${raw}`;
         return {
-          output: `data:image/png;base64,${raw}`,
-          previewHtml: `<img src="${dataUrl}" alt="Base64 preview" style="max-width:100%;height:auto" />`,
+          output: dataUrl,
+          previewDataUrl: dataUrl,
         };
       }
 

@@ -354,6 +354,7 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
   const [secondInput, setSecondInput] = useState('');
   const [output, setOutput] = useState('');
   const [previewHtml, setPreviewHtml] = useState('');
+  const [previewDataUrl, setPreviewDataUrl] = useState('');
   const [meta, setMeta] = useState('');
   const [activeAction, setActiveAction] = useState('default');
   const [loading, setLoading] = useState(false);
@@ -422,6 +423,7 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
       const result = await processTool(toolId, input, { action, secondInput: effectiveSecondInput });
       setOutput(result.output);
       setPreviewHtml(result.previewHtml ?? '');
+      setPreviewDataUrl(result.previewDataUrl ?? '');
       setMeta(result.meta ?? '');
       await save(input, result.output);
     } finally {
@@ -779,8 +781,10 @@ export function ToolWorkbench({ toolId }: { toolId: string }) {
               />
             )}
 
-            {toolId === 'base64-image' && previewHtml && (
-              <div className="mt-2 max-h-40 overflow-auto rounded-lg border p-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }} dangerouslySetInnerHTML={{ __html: previewHtml }} />
+            {toolId === 'base64-image' && previewDataUrl && (
+              <div className="mt-2 max-h-40 overflow-auto rounded-lg border p-2" style={{ borderColor: 'var(--border-subtle)', background: 'var(--bg-primary)' }}>
+                <img src={previewDataUrl} alt="Base64 preview" style={{ maxWidth: '100%', height: 'auto' }} />
+              </div>
             )}
 
             {toolId === 'qr-code' && qrDataUrl && (
