@@ -63,7 +63,7 @@ jobs:
           fetch-depth: 0
 
       - name: TruffleHog secret scan (verified)
-        uses: trufflesecurity/trufflehog@648aca62d5437454d477426fb20c29f402c06a4e
+        uses: trufflesecurity/trufflehog@6c05c4a00b91aa542267d8e32a8254774799d68d
         with:
           path: ./
           base: ${{ github.event.before || github.sha }}
@@ -71,7 +71,7 @@ jobs:
           extra_args: --only-verified
 
       - name: TruffleHog secret scan (unverified high-confidence)
-        uses: trufflesecurity/trufflehog@648aca62d5437454d477426fb20c29f402c06a4e
+        uses: trufflesecurity/trufflehog@6c05c4a00b91aa542267d8e32a8254774799d68d
         continue-on-error: true
         with:
           path: ./
